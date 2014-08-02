@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <title>CYPOS</title>
+
+    <script src="bower_components/platform/platform.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="bower_components/fastclick/lib/fastclick.js"></script>
+    <link href="bower_components/font-roboto/roboto.html" rel="import">
+    <link href="pos-app.html" rel="import">
+
+    <style>
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'RobotoDraft', sans-serif;
+            background-color: red;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+
+    </style>
+
+</head>
+<body unresolved touch-action="auto">
+
+
+<pos-app></pos-app>
+
+
+<script type="text/javascript">
+    window.addEventListener('load', function () {
+        FastClick.attach(document.body);
+    }, false);
+</script>
+</body>
+</html>
+
+
+
+

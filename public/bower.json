@@ -1,0 +1,21 @@
+{
+  "name": "cypos",
+  "version": "0.0.0",
+  "authors": [
+    "jkalweit <kalweit@alumni.duke.edu>"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "polymer": "Polymer/polymer#~0.3.4",
+    "platform": "Polymer/platform#~0.3.4",
+    "fastclick": "~1.0.3",
+    "font-roboto": "Polymer/font-roboto#~0.3.4"
+  }
+}
