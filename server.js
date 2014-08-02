@@ -163,7 +163,7 @@ io.on('connection', function (socket) {
     socket.on('update', function (id, path, value) {
         console.log(id + ': ' + path + ': received update: ' + JSON.stringify(value));
         setValue(path, value)
-        io.emit('update', id, path, value);
+        socket.broadcast.emit('update', id, path, value);
     });
 
     socket.on('delete', function (id, path) {

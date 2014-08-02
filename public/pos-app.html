@@ -2,134 +2,17 @@
 
 
 
-
-<!--<polymer-element name="sync-db" attributes="db">-->
-    <!--<template>-->
-        <!--<h1>hello db</h1>-->
-    <!--</template>-->
-    <!--<script>-->
-        <!--Polymer('sync-db', {-->
-            <!--db: null,-->
-            <!--ready: function () {-->
-                <!--this.db = {-->
-                    <!--long1: {-->
-                        <!--message: 'initial'-->
-                    <!--}-->
-                <!--};-->
-                <!--Object.observe(this.db, this.observer);-->
-            <!--},-->
-            <!--observer: function (changes) {-->
-                <!--changes.forEach(function(change) {-->
-                    <!--console.log('SEND TO DB: ', change.type, change.name, change.object[change.name], change.oldValue);-->
-                <!--});-->
-            <!--},-->
-            <!--dumpDb: function() {-->
-                <!--console.log('   db main: ' + JSON.stringify(this.db));-->
-            <!--}-->
-        <!--});-->
-    <!--</script>-->
-<!--</polymer-element>-->
-
-
-
-<!--<polymer-element name="sync-db-path" attributes="path value">-->
-    <!--<template>-->
-        <!--<h1>path: {{path}}</h1>-->
-    <!--</template>-->
-    <!--<script>-->
-        <!--Polymer('sync-db-path', {-->
-            <!--db: null,-->
-            <!--path: null,-->
-            <!--target: null,-->
-            <!--value: null,-->
-            <!--valueProperty: null,-->
-            <!--ready: function () {-->
-                <!--document.addEventListener('dbchanged', function (e) {-->
-                    <!--this.db = e.detail;-->
-                <!--}.bind(this));-->
-            <!--},-->
-            <!--pathChanged: function() {-->
-                <!--this.updateObservable();-->
-            <!--},-->
-            <!--dbChanged: function() {-->
-                <!--this.updateObservable();-->
-            <!--},-->
-            <!--updateObservable: function () {-->
-                <!--if(!this.db) {-->
-                    <!--console.log('NO DB');-->
-                    <!--return;-->
-                <!--}-->
-                <!--if(this.value)-->
-                    <!--Object.unobserve(this.value, this.observer);-->
-
-                <!--console.log('   getting target at path: ' + this.path);-->
-                <!--var parts = this.path.split('.');-->
-                <!--this.target = this.getTarget(parts);-->
-                <!--this.valueProperty = parts[parts.length-1];-->
-                <!--this.value = this.target[this.valueProperty];-->
-                <!--console.log('   value: ' + JSON.stringify(this.value));-->
-                <!--Object.observe(this.target, this.observer);-->
-            <!--},-->
-            <!--valueChanged: function (oldValue, newValue) {-->
-                <!--console.log('   value changed:', oldValue, newValue);-->
-                <!--var parts = this.path.split('.');-->
-                <!--this.getTarget(parts)[this.valueProperty] = newValue;-->
-            <!--},-->
-            <!--detached: function () {-->
-                <!--console.log('   DETACHED OBSERVER: ' + this.path);-->
-                <!--if(this.target)-->
-                    <!--Object.unobserve(this.value, this.observer);-->
-            <!--},-->
-            <!--observer: function (changes) {-->
-                <!--changes.forEach(function(change) {-->
-                    <!--console.log(change.type, change.name, change.oldValue, change.object[change.name]);-->
-                <!--});-->
-            <!--},-->
-            <!--getTarget: function(parts) {-->
-
-                <!--if (!parts.length) {-->
-                    <!--console.log('path is empty!')-->
-                    <!--return null;-->
-                <!--}-->
-
-                <!--console.log('parts: ' + JSON.stringify(parts));-->
-                <!--var target = syncDb.db;-->
-                <!--var currPart;-->
-                <!--for (var i = 0; i < parts.length - 1; i++) {-->
-                    <!--currPart = parts[i];-->
-                    <!--if (!target.hasOwnProperty(currPart)) // build path if doesn't exist-->
-                        <!--target[currPart] = {};-->
-                    <!--target = target[currPart];-->
-                <!--}-->
-
-                <!--return target;-->
-            <!--}-->
-        <!--});-->
-    <!--</script>-->
-<!--</polymer-element>-->
-
-
-
-
-
-
-
-
 <polymer-element name="pos-app">
     <template>
         <style>
         </style>
         <input value="{{message}}" />
         <input value="{{message}}" />
-        <button on-click="{{dumpDb}}">Dump DB</button>
     </template>
     <script>
         Polymer('pos-app', {
             ready: function() {
                 var sync = new SyncDbPath('long1.message', this, 'message');
-            },
-            dumpDb: function () {
-                console.log('   db: ' + JSON.stringify(syncDb.db));
             }
         });
     </script>
@@ -137,6 +20,7 @@
 
 
 <script>
+
 
     function PathHelper(){}
     PathHelper.prototype.getTarget = function(target, parts) {
@@ -156,7 +40,6 @@
 
         return target;
     };
-
     PathHelper.prototype.setValue = function(obj, path, value) {
         var parts = path.split('.');
         var target = PathHelper.prototype.getTarget(obj, parts);
@@ -166,9 +49,6 @@
             console.log('ERROR: target does not exist: ', path);
         }
     };
-
-
-
 
 
 
@@ -193,30 +73,33 @@
             console.log('   observing dbPath: ', this.dbPath, ': ', JSON.stringify(this.dbTarget));
             Object.observe(this.dbTarget, this.dbObserver.bind(this));
         }.bind(this));
-    }
 
+        this.cancelNextUpdate = false;
+    }
     SyncDbPath.prototype.modelObserver = function (changes) {
         changes.forEach(function(change) {
             if(change.name === this.modelTargetProperty && typeof change.oldValue !== 'undefined') {
-                syncDb.update(this.dbPath, change.object[change.name]); // should be same as this.modelTarget[this.modelTargetProperty]
-                //console.log('   model changed: ', change.type, change.name, change.oldValue, change.object[change.name]);
+                if(this.cancelNextUpdate){
+                    this.cancelNextUpdate = false;
+                    console.log('       model update canceled: ', change.type, change.name, change.oldValue, change.object[change.name]);
+                } else {
+                    //console.log('   model changed: ', change.type, change.name, change.oldValue, change.object[change.name]);
+                    syncDb.update(this.dbPath, change.object[change.name]); // should be same as this.modelTarget[this.modelTargetProperty]
+                }
+
             }
         }.bind(this));
     };
-
     SyncDbPath.prototype.dbObserver = function (changes) {
         changes.forEach(function(change) {
             //console.log('   db changed: ', change.type, change.name, change.oldValue, change.object[change.name], this.dbTargetProperty);
             if(change.name === this.dbTargetProperty) { // && typeof change.oldValue !== 'undefined')
+                this.cancelNextUpdate = true;
                 this.modelTarget[this.modelTargetProperty] = change.object[change.name];
                 console.log('   db changed: ', change.type, change.name, change.oldValue, change.object[change.name]);
             }
         }.bind(this));
     };
-
-
-
-
 
 
 
@@ -242,28 +125,20 @@
 
         this.socket.emit('init', this.syncId);
     }
-
-
     SyncDb.prototype.update = function (path, value) {
         this.socket.emit('update', this.syncId, path, value);
     };
-
     SyncDb.prototype.makeGuid = function () {
         function S4() {
             return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
         }
         return (S4() + S4() + "-" + S4() + "-4" + S4().substr(0,3) + "-" + S4() + "-" + S4() + S4() + S4()).toLowerCase();
     };
-
     SyncDb.prototype.fireDbChanged = function () {
         console.log(' detail: ' + JSON.stringify(this.db));
         var event = new CustomEvent('dbchanged', { 'detail': this.db });
         document.dispatchEvent(event);
     }
-
-
-
-
 
 
 
