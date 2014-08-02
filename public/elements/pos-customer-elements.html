@@ -1,0 +1,481 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/core-signals/core-signals.html">
+<link rel="import" href="../bower_components/core-icon/core-icon.html">
+<link rel="import" href="../bower_components/core-icons/core-icons.html">
+<link rel="import" href="../bower_components/core-input/core-input.html">
+<link rel="import" href="../bower_components/paper-menu-button/paper-menu-button.html">
+<link rel="import" href="../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+
+<polymer-element name="customer-summary-list">
+    <template>
+        <style>
+            #container {
+                margin: 0;
+                padding: 0px;
+                position: absolute;
+                top: 0;
+                left: 0;
+                height: 100%;
+                width: 320px;
+                overflow: hidden;
+                border-right: 1px solid black;
+                background-color: red;
+                z-index: 10;
+
+                /*transition: left .5s ease;*/
+            }
+
+            #container.hidden {
+                left: -280px;
+            }
+
+            #header {
+                width: 100%;
+                height: 40px;
+                line-height: 40px;
+                position: absolute;
+                top: 0;
+                left: 0;
+                background-color: #311b92;
+                color: #ffffff;
+                text-align: center;
+                z-index: 19;
+            }
+
+            #scroll-content {
+                margin: 0;
+                padding: 0;
+                position: absolute;
+                top: 40px;
+                left: 0;
+                bottom: 0;
+                width: 100%;
+                overflow-x: hidden;
+                overflow-y: auto;
+                background-color: #ede7f6;
+                z-index: 11;
+            }
+
+            .off {
+                color: rgba(255,255,255,0.37);
+            }
+        </style>
+        <div id="container">
+            <div id="header">
+                <span style="font-weight: bold; font-size: 20px;">Customers</span>
+            </div>
+            <div id="scroll-content">
+                <input value="{{customerName}}" />
+                <button on-click="{{addCustomer}}">Add</button>
+                <template repeat="{{customer in customers}}">
+                    <customer-summary customer="{{customer}}" on-delete="{{deleteCustomer}}"></customer-summary>
+                </template>
+            </div>
+        </div>
+    </template>
+    <script>
+        Polymer('customer-summary-list', {
+            ready: function() {
+                this.customersSync = new SyncDbPath('customers', this, 'customers', true);
+            },
+            addCustomer: function () {
+                var customer = {
+                    name: this.customerName
+                };
+
+                this.customersSync.addItem(customer);
+            },
+            deleteCustomer: function (e, customer) {
+                this.customersSync.deleteItem(customer);
+            },
+            currency: {
+                toDOM: function (value) {
+                    return '$' + Number(value).toFixed(2).toString();
+                },
+                toModel: function (value) {
+                    return value;
+                }
+            }
+        });
+    </script>
+</polymer-element>
+
+<polymer-element name="customer-summary" attributes="customer">
+    <template>
+        <style>
+            #container {
+                margin: 10px;
+                padding: 20px;
+                color: rgba(0, 0, 0, 0.87);
+                background-color: #ffffff;
+                z-index: 12;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+
+            #container.selected {
+                background-color: #fff59d;
+            }
+
+            /*#container.paid {*/
+            /*background-color: rgba(0,0,0,0.12);*/
+            /*color: rgba(0,0,0,0.57);*/
+            /*}*/
+
+            /*#container.paid.selected {*/
+            /*background-color: rgba(149,117,205,0.5);*/
+            /*color: rgba(0,0,0,0.57);*/
+            /*}*/
+
+        </style>
+        <core-signals on-core-signal-customer-selected="{{selected}}"></core-signals>
+        <div id="container" on-click="{{select}}" class="{{ {selected: isSelected, paid: paid } | tokenList }}">
+            {{customer.name}}
+        </div>
+    </template>
+    <script>
+        Polymer('customer-summary', {
+            customer: null,
+            isSelected: false,
+            select: function () {
+                if(this.isSelected)
+                    this.fire('core-signal', { name: 'customer-edit', data: this.customer });
+                else
+                    this.fire('core-signal', { name: 'customer-selected', data: this.customer });
+
+            },
+            selected: function (e, detail) {
+                if (this.customer && this.customer.id === detail.id)
+                    this.isSelected = true;
+                else
+                    this.isSelected = false;
+            },
+            currency: {
+                toDOM: function (value) {
+                    return '$' + Number(value).toFixed(2).toString();
+                },
+                toModel: function (value) {
+                    return value;
+                }
+            }
+        });
+    </script>
+</polymer-element>
+
+<polymer-element name="customer-edit" attributes="customer">
+    <template>
+        <style>
+            #container {
+                margin: 0;
+                padding: 0px;
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                height: 560px;
+                width: 360px;
+                overflow: hidden;
+                background-color: #ffffff;
+                z-index: 30;
+
+                /*transition: bottom .5s ease;*/
+            }
+
+            #container.hidden {
+                bottom: -600px;
+            }
+
+            #header {
+                width: 100%;
+                height: 40px;
+                line-height: 40px;
+                position: absolute;
+                top: 0;
+                left: 0;
+                background-color: #512da8;
+                color: #ffffff;
+                text-align: center;
+                z-index: 39;
+                overflow: hidden;
+            }
+
+            #scroll-content {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0px;
+                position: absolute;
+                top: 40px;
+                left: 0;
+                bottom: 100px;
+                width: 100%;
+                overflow-x: hidden;
+                overflow-y: auto;
+                background-color: #fff59d;
+                z-index: 31;
+            }
+
+            #scroll-content.paid {
+                background-color: rgba(149,117,205,0.5);
+            }
+
+            #footer {
+                box-sizing: border-box;
+                width: 100%;
+                height: 100px;
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                background-color: #512da8;
+                color: #ffffff;
+                z-index: 39;
+                overflow: hidden;
+            }
+
+            #header /deep/ input {
+                               color: white;
+                               background-color: #673ab7;
+                               text-align: center;
+                           }
+
+        </style>
+
+        <core-signals on-core-signal-customer-selected="{{select}}"></core-signals>
+        <core-signals on-core-signal-customer-edit="{{edit}}"></core-signals>
+        <core-signals on-core-signal-menuitem-selected="{{addOrderItem}}"></core-signals>
+
+        <div id="container" class="{{ {hidden: isHidden } | tokenList }}">
+            <div id="header">
+                <paper-menu-button icon="delete" style="float: left; padding: 0 0 0 5px;">
+                    <paper-item label="" style="color: #000000"></paper-item>
+                    <paper-item icon="delete" label="DELETE CUSTOMER" style="color: #FF0000" on-click="{{delete}}"></paper-item>
+                </paper-menu-button>
+                <paper-icon-button icon="menu" style="float: right; z-index: 34" on-click="{{toggle}}"></paper-icon-button>
+                <core-input id="nameInput" value="{{customerName | uppercase}}" on-focus="{{selectAll}}" style="position: absolute; top: 0; left: 75px; width: 200px;"></core-input>
+            </div>
+
+            <div id="scroll-content" class="{{ {paid: paid} | tokenList }}">
+                <template repeat="{{item in orderItems}}">
+                    <div>
+                        {{item.menuitem.name}}
+                        <!--<orderitem-edit customerId="{{customer.id}}" item="{{item}}" on-delete="{{deleteItem}}"></orderitem-edit>-->
+                    </div>
+                </template>
+            </div>
+
+            <div id="footer">
+                <div style="position: absolute; left: 0; top: 0; height: 100%; width: 200px; padding: 10px; line-height: 32px">
+                    <span>Paid:</span> <paper-toggle-button checked="{{paid}}" style="position: relative; top: 3px; left: 15px"></paper-toggle-button>
+                </div>
+                <!--<div style="position: absolute; left: 200px; top: 0; height: 100%; right: 0; padding: 10px;">-->
+                    <!--Food: <span style="float: right">{{foodtotal | currency}}</span><br/>-->
+                    <!--Tax:  <span style="float: right">{{tax | currency}}</span><br/>-->
+                    <!--Alcohol: <span style="float: right">{{alcoholtotal | currency}}</span><br/>-->
+                    <!--<b style="font-size: 20px">Total:  <span style="float: right">{{total | currency}}</span></b>-->
+                <!--</div>-->
+            </div>
+        </div>
+    </template>
+    <script>
+        Polymer('customer-edit', {
+            customer: null,
+            isHidden: true,
+            ready: function () {
+
+            },
+            customerChanged: function (oldValue, newValue) {
+                if(newValue){
+                    var dbPath = 'customers.' + newValue.id + '.name';
+                    console.log('dbPath: ' + dbPath)
+                    this.customerSync = new SyncDbPath(dbPath, this, 'customerName');
+                } else {
+                    //this.customer = null;
+                }
+            },
+            toggle: function () {
+                this.isHidden = !this.isHidden;
+            },
+            select: function (e, detail) {
+                this.customer = detail;
+            },
+            edit: function (e, detail) {
+                this.customer = detail;
+                this.isHidden = false;
+            },
+//            addOrderItem: function (e, detail) {
+//                if(!this.customer || this.paid)
+//                    return;
+//                var menuitem = detail;
+//                var tax = menuitem.type === 'Alcohol' ? 0 : (Number(menuitem.price) * 0.09).toFixed(2);
+//                var item = {
+//                    quantity: 1,
+//                    menuitem: detail,
+//                    price: detail.price ? detail.price : 0,
+//                    subtotal: detail.price,
+//                    tax: tax,
+//                    total: detail.price + tax
+//                };
+//
+//                console.log('adding order item: ' + JSON.stringify(item));
+//
+//                this.$.syncCustomer.addOrderItem(menuitem);
+//            },
+//            deleteItem: function(e, detail) {
+//                this.$.syncCustomer.deleteOrderItem(detail);
+//            },
+//            delete: function () {
+//                this.fire('core-signal', { name: 'customer-delete', data: this.customer });
+//            },
+//            deleted: function(){
+//                this.customer = null;
+//                this.isHidden = true;
+//            },
+//            quantityChanged: function (oldValue, newValue) {
+//                this.total = Number(newValue) * Number(this.price);
+//            },
+//            selectAll: function (e) {
+//
+//                var input = this.$.nameInput.$.input;
+//                setTimeout(function() {
+//                    input.select();
+//                }, 10);
+//
+//            },
+            currency: {
+                toDOM: function (value) {
+                    return '$' + Number(value).toFixed(2).toString();
+                },
+                toModel: function (value) {
+                    return value;
+                }
+            },
+            uppercase: {
+                toDOM: function (value) {
+                    if(value)
+                        return value.toUpperCase();
+                },
+                toModel: function (value) {
+                    if(value)
+                        return value.toUpperCase();
+                }
+            }
+        });
+    </script>
+</polymer-element>
+
+<polymer-element name="orderitem-edit" attributes="customerId item">
+    <template>
+        <style>
+            :host {
+                position: relative;
+            }
+            #container {
+                margin: 0;
+                position: relative;
+                display: block;
+                min-height: 80px;
+                width: 100%;
+                box-sizing: border-box;
+                color: rgba(0,0,0,0.87);
+            }
+
+            core-input {
+                border: 1px dotted #ccc;
+            }
+
+            .center /deep/ input {
+                               text-align: center;
+                           }
+
+            #container /deep/ #icon {
+                                  color: rgba(0,0,0,0.67);
+                              }
+
+            paper-input /deep/ #errorContainer {
+                                   height: 0;
+                               }
+
+        </style>
+
+
+        <sync-orderitem id="syncOrderItem" path="pos.customers.{{customerId}}.orderitems.{{item.id}}"
+                        customerid="{{customerId}}"
+                        quantity="{{quantity}}"
+                        price="{{price}}"
+                        note="{{note}}"
+                        subtotal="{{subtotal}}"
+                        menuitem="{{menuitem}}"
+                        alcoholtotal="{{alcoholtotal}}"
+                        foodtotal="{{foodtotal}}"
+                        tax="{{tax}}"
+                        total="{{total}}"
+                        autosave="false"></sync-orderitem>
+
+
+        <div id="container">
+            <!--<div style="position: absolute; left: 0; top: 0; height: 100%; width: 30px;">-->
+            <!--<paper-icon-button icon="add-circle-outline" style="margin: 0; padding: 0; position: absolute; top: -5px; left: 0px; width: 30px; height: 30px;" on-click="{{addOne}}"></paper-icon-button>-->
+            <!--<core-input class="center" value="{{quantity}}" on-change="{{updateQuantity}}" style="position: absolute; top: 28px; left: 5px; height: 20px; width: 30px; margin: 0; padding: 0;"></core-input>-->
+            <!--<paper-icon-button icon="remove-circle-outline" style="margin: 0; padding: 0; position: absolute; top: 43px; left: 0px; width: 30px; height: 30px;" on-click="{{subtractOne}}"></paper-icon-button>-->
+            <!--</div>-->
+            <!--<div style="position: absolute; left: 40px; top: 0px; right: 0px; height: 200px; padding: 5px; box-sizing: border-box;">-->
+            <!--<paper-icon-button icon="delete" style="float: right; margin: 0; padding: 0; position: relative; top: -10px;" on-click="{{delete}}"></paper-icon-button>-->
+            <!--<span style="float: right">{{subtotal | currency}}</span>-->
+            <!--<core-input class="center" value="{{price}}" on-change="{{updatePrice}}" style="width: 50px; float: right; margin-right: 5px;"></core-input>-->
+            <!--<span style="font-weight: normal; position: absolute; top: 7px; left: 0px;">{{menuitem.name}}</span>-->
+            <!--<br/>-->
+            <!--<paper-input multiline on-change="{{updateNote}}" value="{{note}}" style="position: absolute; left: 0px; top: 28px; right: 15px"></paper-input>-->
+            <!--</div>-->
+            <div style="float: left; background-color: red; width: 35px">
+                <paper-icon-button icon="add-circle-outline" style="margin: 0; padding: 0; position: absolute; top: -5px; left: 0px; width: 30px; height: 30px;" on-click="{{addOne}}"></paper-icon-button>
+                <core-input class="center" value="{{quantity}}" on-change="{{updateQuantity}}" style="position: absolute; top: 28px; left: 5px; height: 20px; width: 30px; margin: 0; padding: 0;"></core-input>
+                <paper-icon-button icon="remove-circle-outline" style="margin: 0; padding: 0; position: absolute; top: 43px; left: 0px; width: 30px; height: 30px;" on-click="{{subtractOne}}"></paper-icon-button>
+            </div>
+            <div style="margin-left: 40px; padding: 5px;">
+                <paper-icon-button icon="delete" style="float: right; margin: 0; padding: 0; position: relative; top: -10px;" on-click="{{delete}}"></paper-icon-button>
+                <span style="float: right">{{subtotal | currency}}</span>
+                <core-input class="center" value="{{price}}" on-change="{{updatePrice}}" style="width: 50px; float: right; margin-right: 5px;"></core-input>
+                <span style="font-weight: normal; position: relative; top: 7px; left: 0px;">{{menuitem.name}}</span>
+                <br/>
+                <paper-input multiline on-change="{{updateNote}}" value="{{note}}" style="position: relative; left: 0px; top: 0px; width: 16em;"></paper-input>
+            </div>
+            <br style="clear: both" />
+        </div>
+    </template>
+    <script>
+        Polymer('orderitem-edit', {
+            item: null,
+            delete: function() {
+                this.fire('delete', this.item);
+            },
+            addOne: function() {
+                this.quantity++;
+                this.updateQuantity();
+            },
+            subtractOne: function () {
+                this.quantity--;
+                this.updateQuantity();
+            },
+            updateQuantity: function () {
+                this.$.syncOrderItem.updateQuantity(this.quantity);
+            },
+            updatePrice: function () {
+                this.$.syncOrderItem.updatePrice(this.price);
+            },
+            updateNote: function () {
+                this.$.syncOrderItem.updateNote(this.note);
+            },
+            updateOrderItem: function () {
+                console.log('doing update');
+
+            },
+            currency: {
+                toDOM: function (value) {
+                    return '$' + Number(value).toFixed(2).toString();
+                },
+                toModel: function (value) {
+                    return value;
+                }
+            }
+        });
+    </script>
+</polymer-element>

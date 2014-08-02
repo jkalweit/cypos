@@ -23,7 +23,7 @@ var server = http.createServer(function (req, res) {
         res.end(data);
     });
 
-}).listen(port)
+}).listen(port, '0.0.0.0');
 
 var dbPath = 'db.json';
 
@@ -129,14 +129,26 @@ function deleteValue(path) {
 
 
 
-//loadDb();
+loadDb();
 
 
-db = {
-    long1: {
-        message: 'hello from server!'
-    }
-};
+//db = {
+//    customers: {
+//        currId: 3,
+//        '1': {
+//            id: 1,
+//            name: 'JUSTIN'
+//        },
+//        '2': {
+//            id: 2,
+//            name: 'BOB'
+//        },
+//        '3': {
+//            id: 3,
+//            name: 'STEVE'
+//        }
+//    }
+//};
 
 
 
@@ -155,21 +167,37 @@ io.on('connection', function (socket) {
     });
 
 
-    socket.on('init', function (id) {
+    socket.on('init', function (id, requestId) {
         console.log('init: ' + id);
-        socket.emit('init', id, db);
+        socket.emit('init', id, db, requestId);
     });
 
-    socket.on('update', function (id, path, value) {
-        console.log(id + ': ' + path + ': received update: ' + JSON.stringify(value));
+    socket.on('update', function (id, path, value, requestId) {
+        console.log('   ' + id + ': ' + path + ': received update: ' + JSON.stringify(value));
         setValue(path, value)
-        socket.broadcast.emit('update', id, path, value);
+        io.emit('update', id, path, value, requestId);
     });
 
-    socket.on('delete', function (id, path) {
-        console.log(id + ': ' + path + ': delete');
+    socket.on('delete', function (id, path, value, requestId) {
+        console.log('   ' + id + ': ' + path + ': received delete: ' + JSON.stringify(value));
         deleteValue(path)
-        io.emit('update', id, path, null);
+        io.emit('delete', id, path, value, requestId);
+    });
+
+
+
+    socket.on('additem', function (id, path, value, requestId) {
+        console.log('adding item: ' + path);
+        var list = getValue(path);
+        if(!list)
+            list = {};
+        if (!list.currId)
+            list.currId = 0;
+        value.id = ++list.currId;
+        list[value.id] = value;
+
+        setValue(path, list);
+        io.emit('update', id, path + '.' + value.id, value, requestId);
     });
 
 

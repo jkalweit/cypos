@@ -7,9 +7,10 @@
 
     <script src="bower_components/platform/platform.js"></script>
     <script src="/socket.io/socket.io.js"></script>
+    <script src="/syncdb.js"></script>
     <script src="bower_components/fastclick/lib/fastclick.js"></script>
     <link href="bower_components/font-roboto/roboto.html" rel="import">
-    <link href="pos-app.html" rel="import">
+    <link href="elements/pos-app.html" rel="import">
 
     <style>
 
@@ -18,7 +19,6 @@
             padding: 0;
             height: 100%;
             font-family: 'RobotoDraft', sans-serif;
-            background-color: red;
         }
 
         a {
@@ -40,6 +40,8 @@
     window.addEventListener('load', function () {
         FastClick.attach(document.body);
     }, false);
+
+    var syncDb = new SyncDb();
 </script>
 </body>
 </html>

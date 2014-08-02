@@ -1,0 +1,153 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<polymer-element name="menu-category-list">
+    <template>
+        <style>
+            #container {
+                margin: 0;
+                padding: 0px;
+                position: absolute;
+                top: 0;
+                right: 0;
+                height: 100%;
+                width: 360px;
+                overflow: hidden;
+                border-left: 1px solid black;
+                background-color: red;
+                z-index: 40;
+                /*transition: right .5s ease;*/
+            }
+
+            #container.hidden {
+                right: -320px;
+            }
+
+            #header {
+                width: 100%;
+                height: 40px;
+                line-height: 40px;
+                position: absolute;
+                top: 0;
+                left: 0;
+                background-color: #0d5302;
+                color: #ffffff;
+                text-align: center;
+                z-index: 49;
+            }
+
+            #scroll-content {
+                margin: 0;
+                padding: 0;
+                position: absolute;
+                top: 40px;
+                left: 0;
+                bottom: 0;
+                width: 100%;
+                overflow-x: hidden;
+                overflow-y: auto;
+                background-color: #d0f8ce;
+                z-index: 41;
+            }
+        </style>
+        <div id="container">
+            <div id="header">
+                <span style="font-weight: bold; font-size: 20px;">Menu Items</span>
+            </div>
+            <div id="scroll-content">
+                <template repeat="{{category in categories}}">
+                    <menu-category category="{{category}}"></menu-category>
+                </template>
+            </div>
+        </div>
+    </template>
+    <script>
+        Polymer('menu-category-list', {
+            categories: null,
+            ready: function () {
+                this.categoriesSync = new SyncDbPath('menu.categories', this, 'categories', true);
+            }
+        });
+    </script>
+</polymer-element>
+
+<polymer-element name="menu-category" attributes="category">
+    <template>
+        <style>
+            #container {
+                margin: 10px;
+                padding: 0 0 10px 0;
+                position: relative;
+                color: rgba(0, 0, 0, 0.87);
+                background-color: #ffffff;
+                z-index: 22;
+            }
+
+        </style>
+        <div id="container">
+            <div on-click="{{toggle}}" style="position: relative; padding: 20px 20px 10px 20px">
+                <!--<paper-ripple></paper-ripple>-->
+                <span style="font-weight: bold">{{category.name}}</span>
+            </div>
+            <template repeat="{{item in category.items | enumerateObj }}">
+                <menu-item categoryId="{{category.id}}" item="{{item}}"></menu-item>
+            </template>
+        </div>
+    </template>
+    </template>
+    <script>
+        Polymer('menu-category', {
+            category: null,
+            ready: function() {
+//                this.categoriesSync = new SyncDbPath('menu.categories', this, 'categories', true);
+            },
+            enumerateObj: function (obj) {
+                var result = [];
+                if(obj) {
+                    Object.keys(obj).forEach(function (key) {
+                        if(key !== 'currId')
+                            result.push(obj[key]);
+                    });
+                }
+                return result;
+            }
+        });
+    </script>
+</polymer-element>
+
+
+<polymer-element name="menu-item" attributes="categoryId item">
+    <template>
+        <style>
+            #container {
+                margin: 0px;
+                padding: 5px 20px 5px 20px;
+                position: relative;
+                color: rgba(0, 0, 0, 0.87);
+                background-color: #ffffff;
+                overflow: hidden;
+                z-index: 23;
+            }
+        </style>
+        <div id="container" on-click="{{select}}">
+            <span style="float: right">{{item.price | currency}}</span>
+            <span>{{item.name}}</span>
+        </div>
+    </template>
+    </template>
+    <script>
+        Polymer('menu-item', {
+            item: null,
+            select: function () {
+                this.fire('core-signal', { name: 'menuitem-selected', data: this.item });
+            },
+            currency: {
+                toDOM: function (value) {
+                    return '$' + Number(value).toFixed(2).toString();
+                },
+                toModel: function (value) {
+                    return value;
+                }
+            }
+        });
+    </script>
+</polymer-element>
