@@ -6,6 +6,7 @@
 <link rel="import" href="../bower_components/paper-menu-button/paper-menu-button.html">
 <link rel="import" href="../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
 
 <polymer-element name="customer-summary-list">
     <template>
@@ -61,6 +62,7 @@
                 color: rgba(255,255,255,0.37);
             }
         </style>
+        <core-signals on-core-signal-customer-delete="{{deleteCustomer}}"></core-signals>
         <div id="container">
             <div id="header">
                 <span style="font-weight: bold; font-size: 20px;">Customers</span>
@@ -77,11 +79,17 @@
     <script>
         Polymer('customer-summary-list', {
             ready: function() {
-                this.customersSync = new SyncDbPath('customers', this, 'customers', true);
+                this.customersSync = new SyncDbList('customers', this, 'customers');
             },
             addCustomer: function () {
                 var customer = {
-                    name: this.customerName
+                    name: this.customerName,
+                    orderitems: {},
+                    foodtotal: 0,
+                    alcoholtotal: 0,
+                    tax: 0,
+                    total: 0,
+                    paid: false
                 };
 
                 this.customersSync.addItem(customer);
@@ -130,14 +138,37 @@
 
         </style>
         <core-signals on-core-signal-customer-selected="{{selected}}"></core-signals>
-        <div id="container" on-click="{{select}}" class="{{ {selected: isSelected, paid: paid } | tokenList }}">
-            {{customer.name}}
+        <div id="container" on-click="{{select}}" class="{{ {selected: isSelected, paid: customer.paid } | tokenList }}">
+            <template if="{{customer.paid}}">
+                <div style="float: right">
+                    <core-icon icon="check"></core-icon>
+                </div>
+            </template>
+
+            <h2>{{customer.name}}</h2>
+
+            <template if="{{!customer.paid}}">
+                <template repeat="{{item in orderItems}}">
+                    <orderitem-summary customerId="{{customer.id}}" item="{{item}}"></orderitem-summary>
+                </template>
+                <br/>
+                <b style="font-size: 20px">Total:  <span style="float: right">{{customer.total | currency}}</span></b>
+            </template>
         </div>
     </template>
     <script>
         Polymer('customer-summary', {
             customer: null,
             isSelected: false,
+            customerChanged: function (oldValue, newValue) {
+                if(this.orderItemsSync) {
+                    this.orderItemsSync.unobserve();
+                    this.orderItemsSync = null; // release reference for garbage collection
+                }
+                if(newValue){
+                    this.orderItemsSync = new SyncDbPath('customers.' + newValue.id, 'orderitems', this, '', 'orderItems', true, false);
+                }
+            },
             select: function () {
                 if(this.isSelected)
                     this.fire('core-signal', { name: 'customer-edit', data: this.customer });
@@ -162,6 +193,41 @@
         });
     </script>
 </polymer-element>
+
+<polymer-element name="orderitem-summary" attributes="customerId item">
+    <template>
+        <style>
+            #container {
+                margin-bottom: 5px;
+                padding: 0px;
+                color: rgba(0, 0, 0, 0.87);
+                z-index: 12;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+        </style>
+        <div id="container">
+            <span style="float: right">{{item.subtotal | currency}}</span>
+            <span>{{item.quantity != 1 ? item.quantity + ' ' : '' }}{{item.menuitem.name}}</span>
+            <br/>
+            <pre style="margin: 3px 0 3px 1em;">{{item.note}}</pre>
+        </div>
+    </template>
+    <script>
+        Polymer('orderitem-summary', {
+            item: null,
+            currency: {
+                toDOM: function (value) {
+                    return '$' + Number(value).toFixed(2).toString();
+                },
+                toModel: function (value) {
+                    return value;
+                }
+            }
+        });
+    </script>
+</polymer-element>
+
 
 <polymer-element name="customer-edit" attributes="customer">
     <template>
@@ -250,21 +316,20 @@
                     <paper-item icon="delete" label="DELETE CUSTOMER" style="color: #FF0000" on-click="{{delete}}"></paper-item>
                 </paper-menu-button>
                 <paper-icon-button icon="menu" style="float: right; z-index: 34" on-click="{{toggle}}"></paper-icon-button>
-                <core-input id="nameInput" value="{{customerName | uppercase}}" on-focus="{{selectAll}}" style="position: absolute; top: 0; left: 75px; width: 200px;"></core-input>
+                <core-input id="nameInput" value="{{customerName | uppercase}}" on-focus="{{selectAllInputText}}" style="position: absolute; top: 0; left: 75px; width: 200px;"></core-input>
             </div>
 
-            <div id="scroll-content" class="{{ {paid: paid} | tokenList }}">
+            <div id="scroll-content" class="{{ {paid: customer.paid} | tokenList }}">
                 <template repeat="{{item in orderItems}}">
                     <div>
-                        {{item.menuitem.name}}
-                        <!--<orderitem-edit customerId="{{customer.id}}" item="{{item}}" on-delete="{{deleteItem}}"></orderitem-edit>-->
+                        <orderitem-edit customerId="{{customer.id}}" item="{{item}}" on-delete="{{deleteItem}}"></orderitem-edit>
                     </div>
                 </template>
             </div>
 
             <div id="footer">
                 <div style="position: absolute; left: 0; top: 0; height: 100%; width: 200px; padding: 10px; line-height: 32px">
-                    <span>Paid:</span> <paper-toggle-button checked="{{paid}}" style="position: relative; top: 3px; left: 15px"></paper-toggle-button>
+                    <span>Paid:</span> <paper-toggle-button checked="{{customer.paid}}" style="position: relative; top: 3px; left: 15px"></paper-toggle-button>
                 </div>
                 <!--<div style="position: absolute; left: 200px; top: 0; height: 100%; right: 0; padding: 10px;">-->
                     <!--Food: <span style="float: right">{{foodtotal | currency}}</span><br/>-->
@@ -283,10 +348,17 @@
 
             },
             customerChanged: function (oldValue, newValue) {
+                if(this.customerSync){
+                    this.customerSync.unobserve();
+                    this.customerSync = null;
+                }
+                if(this.orderItemsSync){
+                    this.orderItemsSync.unobserve();
+                    this.orderItemsSync = null;
+                }
                 if(newValue){
-                    var dbPath = 'customers.' + newValue.id + '.name';
-                    console.log('dbPath: ' + dbPath)
-                    this.customerSync = new SyncDbPath(dbPath, this, 'customerName');
+                    this.customerSync = new SyncDbPath('customers.' + newValue.id, 'name', this, '', 'customerName', false, true);
+                    this.orderItemsSync = new SyncDbPath('customers.' + newValue.id, 'orderitems', this, '', 'orderItems', true, false);
                 } else {
                     //this.customer = null;
                 }
@@ -301,45 +373,47 @@
                 this.customer = detail;
                 this.isHidden = false;
             },
-//            addOrderItem: function (e, detail) {
-//                if(!this.customer || this.paid)
-//                    return;
-//                var menuitem = detail;
-//                var tax = menuitem.type === 'Alcohol' ? 0 : (Number(menuitem.price) * 0.09).toFixed(2);
-//                var item = {
-//                    quantity: 1,
-//                    menuitem: detail,
-//                    price: detail.price ? detail.price : 0,
-//                    subtotal: detail.price,
-//                    tax: tax,
-//                    total: detail.price + tax
-//                };
-//
-//                console.log('adding order item: ' + JSON.stringify(item));
-//
-//                this.$.syncCustomer.addOrderItem(menuitem);
-//            },
-//            deleteItem: function(e, detail) {
-//                this.$.syncCustomer.deleteOrderItem(detail);
-//            },
-//            delete: function () {
-//                this.fire('core-signal', { name: 'customer-delete', data: this.customer });
-//            },
+            addOrderItem: function (e, detail) {
+                if(!this.customer || this.paid)
+                    return;
+                var menuitem = detail;
+                var tax = menuitem.type === 'Alcohol' ? 0 : (Number(menuitem.price) * 0.09).toFixed(2);
+                var item = {
+                    quantity: 1,
+                    menuitem: detail,
+                    price: detail.price ? detail.price : 0,
+                    subtotal: detail.price,
+                    tax: tax,
+                    total: detail.price + tax
+                };
+
+                console.log('adding order item: ' + JSON.stringify(item));
+
+                if(this.orderItemsSync)
+                    this.orderItemsSync.addItem(item);
+            },
+            deleteItem: function(e, detail) {
+                this.orderItemsSync.deleteItem(detail);
+            },
+            delete: function () {
+                this.isHidden = true;
+                this.fire('core-signal', { name: 'customer-delete', data: this.customer });
+            },
 //            deleted: function(){
-//                this.customer = null;
+//                //this.customer = null;
 //                this.isHidden = true;
 //            },
 //            quantityChanged: function (oldValue, newValue) {
 //                this.total = Number(newValue) * Number(this.price);
 //            },
-//            selectAll: function (e) {
-//
-//                var input = this.$.nameInput.$.input;
-//                setTimeout(function() {
-//                    input.select();
-//                }, 10);
-//
-//            },
+            selectAllInputText: function (e) {
+
+                var input = this.$.nameInput.$.input;
+                setTimeout(function() {
+                    input.select();
+                }, 10);
+
+            },
             currency: {
                 toDOM: function (value) {
                     return '$' + Number(value).toFixed(2).toString();
@@ -397,46 +471,19 @@
         </style>
 
 
-        <sync-orderitem id="syncOrderItem" path="pos.customers.{{customerId}}.orderitems.{{item.id}}"
-                        customerid="{{customerId}}"
-                        quantity="{{quantity}}"
-                        price="{{price}}"
-                        note="{{note}}"
-                        subtotal="{{subtotal}}"
-                        menuitem="{{menuitem}}"
-                        alcoholtotal="{{alcoholtotal}}"
-                        foodtotal="{{foodtotal}}"
-                        tax="{{tax}}"
-                        total="{{total}}"
-                        autosave="false"></sync-orderitem>
-
-
         <div id="container">
-            <!--<div style="position: absolute; left: 0; top: 0; height: 100%; width: 30px;">-->
-            <!--<paper-icon-button icon="add-circle-outline" style="margin: 0; padding: 0; position: absolute; top: -5px; left: 0px; width: 30px; height: 30px;" on-click="{{addOne}}"></paper-icon-button>-->
-            <!--<core-input class="center" value="{{quantity}}" on-change="{{updateQuantity}}" style="position: absolute; top: 28px; left: 5px; height: 20px; width: 30px; margin: 0; padding: 0;"></core-input>-->
-            <!--<paper-icon-button icon="remove-circle-outline" style="margin: 0; padding: 0; position: absolute; top: 43px; left: 0px; width: 30px; height: 30px;" on-click="{{subtractOne}}"></paper-icon-button>-->
-            <!--</div>-->
-            <!--<div style="position: absolute; left: 40px; top: 0px; right: 0px; height: 200px; padding: 5px; box-sizing: border-box;">-->
-            <!--<paper-icon-button icon="delete" style="float: right; margin: 0; padding: 0; position: relative; top: -10px;" on-click="{{delete}}"></paper-icon-button>-->
-            <!--<span style="float: right">{{subtotal | currency}}</span>-->
-            <!--<core-input class="center" value="{{price}}" on-change="{{updatePrice}}" style="width: 50px; float: right; margin-right: 5px;"></core-input>-->
-            <!--<span style="font-weight: normal; position: absolute; top: 7px; left: 0px;">{{menuitem.name}}</span>-->
-            <!--<br/>-->
-            <!--<paper-input multiline on-change="{{updateNote}}" value="{{note}}" style="position: absolute; left: 0px; top: 28px; right: 15px"></paper-input>-->
-            <!--</div>-->
             <div style="float: left; background-color: red; width: 35px">
                 <paper-icon-button icon="add-circle-outline" style="margin: 0; padding: 0; position: absolute; top: -5px; left: 0px; width: 30px; height: 30px;" on-click="{{addOne}}"></paper-icon-button>
-                <core-input class="center" value="{{quantity}}" on-change="{{updateQuantity}}" style="position: absolute; top: 28px; left: 5px; height: 20px; width: 30px; margin: 0; padding: 0;"></core-input>
+                <core-input class="center" value="{{item.quantity}}" on-change="{{updateQuantity}}" style="position: absolute; top: 28px; left: 5px; height: 20px; width: 30px; margin: 0; padding: 0;"></core-input>
                 <paper-icon-button icon="remove-circle-outline" style="margin: 0; padding: 0; position: absolute; top: 43px; left: 0px; width: 30px; height: 30px;" on-click="{{subtractOne}}"></paper-icon-button>
             </div>
             <div style="margin-left: 40px; padding: 5px;">
                 <paper-icon-button icon="delete" style="float: right; margin: 0; padding: 0; position: relative; top: -10px;" on-click="{{delete}}"></paper-icon-button>
-                <span style="float: right">{{subtotal | currency}}</span>
-                <core-input class="center" value="{{price}}" on-change="{{updatePrice}}" style="width: 50px; float: right; margin-right: 5px;"></core-input>
-                <span style="font-weight: normal; position: relative; top: 7px; left: 0px;">{{menuitem.name}}</span>
+                <span style="float: right">{{item.subtotal | currency}}</span>
+                <core-input class="center" value="{{item.price}}" on-change="{{updatePrice}}" style="width: 50px; float: right; margin-right: 5px;"></core-input>
+                <span style="font-weight: normal; position: relative; top: 7px; left: 0px;">{{item.menuitem.name}}</span>
                 <br/>
-                <paper-input multiline on-change="{{updateNote}}" value="{{note}}" style="position: relative; left: 0px; top: 0px; width: 16em;"></paper-input>
+                <paper-input multiline on-change="{{updateNote}}" value="{{item.note}}" style="position: relative; left: 0px; top: 0px; width: 16em;"></paper-input>
             </div>
             <br style="clear: both" />
         </div>
@@ -448,21 +495,22 @@
                 this.fire('delete', this.item);
             },
             addOne: function() {
-                this.quantity++;
+                this.item.quantity++;
                 this.updateQuantity();
             },
             subtractOne: function () {
-                this.quantity--;
+                this.item.quantity--;
                 this.updateQuantity();
             },
             updateQuantity: function () {
-                this.$.syncOrderItem.updateQuantity(this.quantity);
+                this.item.subtotal = this.item.quantity * this.item.price;
+                //this.$.syncOrderItem.updateQuantity(this.quantity);
             },
             updatePrice: function () {
-                this.$.syncOrderItem.updatePrice(this.price);
+                //this.$.syncOrderItem.updatePrice(this.price);
             },
             updateNote: function () {
-                this.$.syncOrderItem.updateNote(this.note);
+                //this.$.syncOrderItem.updateNote(this.note);
             },
             updateOrderItem: function () {
                 console.log('doing update');

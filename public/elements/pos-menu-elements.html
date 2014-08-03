@@ -64,7 +64,7 @@
         Polymer('menu-category-list', {
             categories: null,
             ready: function () {
-                this.categoriesSync = new SyncDbPath('menu.categories', this, 'categories', true);
+                this.categoriesSync = new SyncDbPath('menu', 'categories', this, '', 'categories', true, false);
             }
         });
     </script>

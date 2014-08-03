@@ -4,26 +4,39 @@
 
 
 function PathHelper(){}
-PathHelper.prototype.getTarget = function(target, parts) {
-    if (!parts.length) {
-        console.log('Error: parts.length should be >= 1')
-        return null;
-    }
+PathHelper.prototype.getValue = function(obj, path) {
+    var parts = path.split('.');
 
+    var result = obj;
     //console.log('  getting target from parts: ' + JSON.stringify(parts));
     var currPart;
-    for (var i = 0; i < parts.length - 1; i++) {
+    for (var i = 0; i < parts.length; i++) {
         currPart = parts[i];
-        if (!target.hasOwnProperty(currPart)) // build path if doesn't exist
-            target[currPart] = {};
-        target = target[currPart];
+        if (!result.hasOwnProperty(currPart)) // build path if doesn't exist
+            result[currPart] = {};
+        result = result[currPart];
     }
 
-    return target;
+    return result;
+};
+PathHelper.prototype.getTarget = function(obj, path) {
+    var parts = path.split('.');
+
+    var result = obj;
+    //console.log('  getting target from parts: ' + JSON.stringify(parts));
+    var currPart;
+    for (var i = 0; i < parts.length-1; i++) {
+        currPart = parts[i];
+        if (!result.hasOwnProperty(currPart)) // build path if doesn't exist
+            result[currPart] = {};
+        result = result[currPart];
+    }
+
+    return result;
 };
 PathHelper.prototype.setValue = function(obj, path, value) {
     var parts = path.split('.');
-    var target = PathHelper.prototype.getTarget(obj, parts);
+    var target = PathHelper.prototype.getTarget(obj, path);
     if(target) {
         target[parts[parts.length - 1]] = value;
     } else {
@@ -40,46 +53,53 @@ PathHelper.prototype.deleteValue = function(obj, path) {
 
 
 
-
-function SyncDbPath(dbPath, modelObj, modelPath, enumerate) {
+function SyncDbPath(dbPath, dbTargetProperty, modelObj, modelPath, modelTargetProperty, enumerate, twoway) {
     // objects are passed by reference so we can observe db and modify model
     this.dbPath = dbPath;
+    this.dbTargetProperty = dbTargetProperty;
     this.modelObj = modelObj;
     this.modelPath = modelPath;
-    this.enumerate = enumerate;
+    this.modelTargetProperty = modelTargetProperty;
+    this.enumerate = enumerate | false;
+    this.twoway = twoway | false;
 
-    this.dbPathParts = dbPath.split('.');
-    this.dbTargetProperty = this.dbPathParts[this.dbPathParts.length-1];
-    this.modelPathParts = modelPath.split('.');
-    this.modelTargetProperty = this.modelPathParts[this.modelPathParts.length-1];
-    this.modelTarget = PathHelper.prototype.getTarget(this.modelObj, this.modelPathParts);
+    this.modelTarget = PathHelper.prototype.getValue(this.modelObj, this.modelPath);
     console.log('   observing modelPath: ', this.modelPath, this.modelTargetProperty);
-    Object.observe(this.modelTarget, this.modelObserver.bind(this));
+    this.modelObserverInstance = this.modelObserver.bind(this)
+
+    if(this.twoway)
+        Object.observe(this.modelTarget, this.modelObserverInstance);
+
     if(syncDb.db) {
         this.dbObj = syncDb.db;
         this.observeDbObject();
     }
 
-    document.addEventListener('dbchanged', function (e) {
-        this.dbObj = e.detail;
-        this.observeDbObject();
-    }.bind(this));
+    this.dbChangedListenerInstance = this.dbChangedListener.bind(this);
+    document.addEventListener('dbchanged', this.dbChangedListenerInstance);
 
     this.cancelNextUpdate = false;
 };
 SyncDbPath.prototype.observeDbObject = function () {
     if(this.dbTarget)
-        Object.unobserve(this.dbTarget, this.dbObserver.bind(this));
+        Object.unobserve(this.dbTarget, this.dbObserverInstance);
     if(this.dbTarget && this.enumerate)
-        Object.unobserve(this.dbTarget[this.dbTargetProperty], this.enumerateObserver.bind(this));
+        Object.unobserve(this.dbTarget[this.dbTargetProperty], this.enumerateObserverInstance);
 
-    this.dbTarget = PathHelper.prototype.getTarget(this.dbObj, this.dbPathParts);
-    this.setModelValue(this.getDbValue());
-    //console.log('   observing dbPath: ', this.dbPath, ': ', JSON.stringify(this.dbTarget));
+    this.dbTarget = PathHelper.prototype.getValue(this.dbObj, this.dbPath);
+    this.setModelValue(this.modelTargetProperty, this.getDbValue());
+    console.log('   observing dbPath: ', this.dbPath, this.dbTargetProperty, ': ', this.dbTarget);
 
-    Object.observe(this.dbTarget, this.dbObserver.bind(this));
     if(this.enumerate){
-        Object.observe(this.dbTarget[this.dbTargetProperty], this.enumerateObserver.bind(this));
+        if(!this.dbTarget[this.dbTargetProperty])
+            this.dbTarget[this.dbTargetProperty] = {};
+        this.enumerateObserverInstance = this.enumerateObserver.bind(this);
+        console.log('enumerate observe dbTarget: ', this.dbTarget);
+        console.log('enumerate observe dbTargetProperty: ', this.dbTarget[this.dbTargetProperty]);
+        Object.observe(this.dbTarget[this.dbTargetProperty], this.enumerateObserverInstance);
+    } else {
+        this.dbObserverInstance = this.dbObserver.bind(this);
+        Object.observe(this.dbTarget, this.dbObserverInstance);
     }
 }
 SyncDbPath.prototype.addItem = function (item, callback) {
@@ -91,24 +111,28 @@ SyncDbPath.prototype.deleteItem = function (item, callback) {
 SyncDbPath.prototype.getDbValue = function () {
     return this.dbTarget[this.dbTargetProperty];
 };
-SyncDbPath.prototype.setModelValue = function (value) {
+SyncDbPath.prototype.setModelValue = function (property, value) {
+    this.cancelNextUpdate = true;
     if(this.enumerate) {
         this.enumerated = this.enumerateObj(value);
-        this.modelTarget[this.modelTargetProperty] = this.enumerated;
+        this.modelTarget[property] = this.enumerated;
     } else {
-        this.modelTarget[this.modelTargetProperty] = value;
+        this.modelTarget[property] = value;
     }
+    //TODO: Should we call Object.deliverChangeRecords to enforce and reset cancelNextUpdate synchronously?
+    //Object.deliverChangeRecords();
 };
 SyncDbPath.prototype.modelObserver = function (changes) {
     changes.forEach(function(change) {
         //console.log('   model changed: ', change.type, change.name, change.oldValue, change.object[change.name]);
-        if(change.name === this.modelTargetProperty && typeof change.oldValue !== 'undefined') {
+        if(this.twoway && (change.name === '' || change.name === this.modelTargetProperty) && typeof change.oldValue !== 'undefined') {
+//TODO: Try cancelNextUpdate with Object.deliverChangeRecords (in setModelValue)
 //            if(this.cancelNextUpdate){
 //                this.cancelNextUpdate = false;
 //                console.log('       model update canceled: ', change.type, change.name, change.oldValue, change.object[change.name]);
 //            } else {
                 console.log('        sending model update: ', change.type, change.name, change.oldValue, change.object[change.name]);
-                syncDb.update(this.dbPath, change.object[change.name]); // should be same as this.modelTarget[this.modelTargetProperty]
+                syncDb.update(this.dbPath + '.' + change.name, change.object[change.name]); // should be same as this.modelTarget[this.modelTargetProperty]
             //}
 
         }
@@ -117,13 +141,14 @@ SyncDbPath.prototype.modelObserver = function (changes) {
 SyncDbPath.prototype.dbObserver = function (changes) {
     changes.forEach(function(change) {
         //console.log('   db changed1: ', change.type, change.name, change.oldValue, change.object[change.name], this.dbTargetProperty);
-        if(change.name === this.dbTargetProperty) { // && typeof change.oldValue !== 'undefined')
-            this.cancelNextUpdate = true;
-            console.log('   db changed3: ', change.type, change.name, change.oldValue, change.object[change.name]);
-            this.setModelValue(change.object[change.name]);
-            console.log('   db changed4: ', change.type, change.name, change.oldValue, change.object[change.name]);
+        if(this.dbTargetProperty === '' || change.name === this.dbTargetProperty) { // && typeof change.oldValue !== 'undefined')
+            this.setModelValue(change.name, change.object[change.name]);
         }
     }.bind(this));
+};
+SyncDbPath.prototype.dbChangedListener = function (e) {
+    this.dbObj = e.detail;
+    this.observeDbObject();
 };
 SyncDbPath.prototype.enumerateObserver = function (changes) {
     changes.forEach(function(change) {
@@ -153,6 +178,94 @@ SyncDbPath.prototype.enumerateObj = function (obj) {
     //console.log('enumerated: ', JSON.stringify(result));
     return result;
 };
+SyncDbPath.prototype.unobserve = function () {
+    if(this.dbTarget)
+        Object.unobserve(this.dbTarget, this.dbObserverInstance);
+    if(this.dbTarget && this.enumerate)
+        Object.unobserve(this.dbTarget[this.dbTargetProperty], this.enumerateObserverInstance);
+    if(this.twoway && this.modelTarget)
+        Object.unobserve(this.modelTarget, this.modelObserverInstance);
+
+    document.removeEventListener('dbchanged', this.dbChangedListenerInstance);
+}
+
+
+
+
+function SyncDbList(dbPath, modelObj, modelPath) {
+    // objects are passed by reference so we can observe db and modify model
+    this.dbPath = dbPath;
+    this.modelObj = modelObj;
+    this.modelPath = modelPath;
+
+    if(syncDb.db) {
+        this.dbObj = syncDb.db;
+        this.observeDbObject();
+    }
+
+    this.dbChangedListenerInstance = this.dbChangedListener.bind(this);
+    document.addEventListener('dbchanged', this.dbChangedListenerInstance);
+};
+SyncDbList.prototype.observeDbObject = function () {
+    if(this.dbTarget)
+        Object.unobserve(this.dbTarget, this.dbObserverInstance);
+
+    this.dbTarget = PathHelper.prototype.getValue(this.dbObj, this.dbPath);
+    this.setModelValue(this.dbTarget);
+
+    this.enumerateObserverInstance = this.enumerateObserver.bind(this);
+    Object.observe(this.dbTarget, this.enumerateObserverInstance);
+}
+SyncDbList.prototype.addItem = function (item, callback) {
+    syncDb.addItem(this.dbPath, item, callback);
+};
+SyncDbList.prototype.deleteItem = function (item, callback) {
+    syncDb.delete(this.dbPath + '.' + item.id, callback);
+};
+SyncDbList.prototype.setModelValue = function (value) {
+    this.enumerated = this.enumerateObj(value);
+    PathHelper.prototype.setValue(this.modelObj, this.modelPath, this.enumerated);
+};
+SyncDbList.prototype.dbChangedListener = function (e) {
+    this.dbObj = e.detail;
+    this.observeDbObject();
+};
+SyncDbList.prototype.enumerateObserver = function (changes) {
+    changes.forEach(function(change) {
+        if(change.type === 'add'){
+            var value = change.object[change.name];
+            this.enumerated.push(value);
+            console.log('      enumerated added: ', change.type, change.name, change.oldValue, value);
+        } else if (change.type === 'delete') {
+            for (var n = this.enumerated.length-1; n >= 0; n--) {
+                if (this.enumerated[n].id === change.oldValue.id) {
+                    this.enumerated.splice(n, 1);
+                    console.log('     deleted item from enumerated at: ' + n);
+                }
+            }
+        } else
+            console.log('ERROR: enumerated unhandled: ', change.type, change.name, change.oldValue, change.object[change.name], this.dbTargetProperty);
+    }.bind(this));
+};
+SyncDbList.prototype.enumerateObj = function (obj) {
+    var result = [];
+    if(obj) {
+        Object.keys(obj).forEach(function (key) {
+            if(key !== 'currId')
+                result.push(obj[key]);
+        });
+    }
+    //console.log('enumerated: ', JSON.stringify(result));
+    return result;
+};
+SyncDbList.prototype.unobserve = function () {
+    if(this.dbTarget)
+        Object.unobserve(this.dbTarget, this.dbObserverInstance);
+
+    document.removeEventListener('dbchanged', this.dbChangedListenerInstance);
+}
+
+
 
 
 
