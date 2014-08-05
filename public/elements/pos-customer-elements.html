@@ -166,7 +166,7 @@
                     this.orderItemsSync = null; // release reference for garbage collection
                 }
                 if(newValue){
-                    this.orderItemsSync = new SyncDbPath('customers.' + newValue.id, 'orderitems', this, '', 'orderItems', true, false);
+                    this.orderItemsSync = new SyncDbList('customers.' + newValue.id + '.orderitems', this, 'orderItems');
                 }
             },
             select: function () {
@@ -227,6 +227,7 @@
         });
     </script>
 </polymer-element>
+
 
 
 <polymer-element name="customer-edit" attributes="customer">
@@ -316,13 +317,13 @@
                     <paper-item icon="delete" label="DELETE CUSTOMER" style="color: #FF0000" on-click="{{delete}}"></paper-item>
                 </paper-menu-button>
                 <paper-icon-button icon="menu" style="float: right; z-index: 34" on-click="{{toggle}}"></paper-icon-button>
-                <core-input id="nameInput" value="{{customerName | uppercase}}" on-focus="{{selectAllInputText}}" style="position: absolute; top: 0; left: 75px; width: 200px;"></core-input>
+                <core-input id="nameInput" value="{{customer.name | uppercase}}" on-focus="{{selectAllInputText}}" style="position: absolute; top: 0; left: 75px; width: 200px;"></core-input>
             </div>
 
             <div id="scroll-content" class="{{ {paid: customer.paid} | tokenList }}">
                 <template repeat="{{item in orderItems}}">
                     <div>
-                        <orderitem-edit customerId="{{customer.id}}" item="{{item}}" on-delete="{{deleteItem}}"></orderitem-edit>
+                        <orderitem-edit customerId="{{customer.id}}" item="{{item}}" on-delete="{{deleteItem}}" on-update-orderitem-totals="{{updateOrderItemTotals}}"></orderitem-edit>
                     </div>
                 </template>
             </div>
@@ -331,12 +332,12 @@
                 <div style="position: absolute; left: 0; top: 0; height: 100%; width: 200px; padding: 10px; line-height: 32px">
                     <span>Paid:</span> <paper-toggle-button checked="{{customer.paid}}" style="position: relative; top: 3px; left: 15px"></paper-toggle-button>
                 </div>
-                <!--<div style="position: absolute; left: 200px; top: 0; height: 100%; right: 0; padding: 10px;">-->
-                    <!--Food: <span style="float: right">{{foodtotal | currency}}</span><br/>-->
-                    <!--Tax:  <span style="float: right">{{tax | currency}}</span><br/>-->
-                    <!--Alcohol: <span style="float: right">{{alcoholtotal | currency}}</span><br/>-->
-                    <!--<b style="font-size: 20px">Total:  <span style="float: right">{{total | currency}}</span></b>-->
-                <!--</div>-->
+                <div style="position: absolute; left: 200px; top: 0; height: 100%; right: 0; padding: 10px;">
+                    Food: <span style="float: right">{{customer.foodtotal | currency}}</span><br/>
+                    Tax:  <span style="float: right">{{customer.tax | currency}}</span><br/>
+                    Alcohol: <span style="float: right">{{customer.alcoholtotal | currency}}</span><br/>
+                    <b style="font-size: 20px">Total:  <span style="float: right">{{customer.total | currency}}</span></b>
+                </div>
             </div>
         </div>
     </template>
@@ -344,9 +345,6 @@
         Polymer('customer-edit', {
             customer: null,
             isHidden: true,
-            ready: function () {
-
-            },
             customerChanged: function (oldValue, newValue) {
                 if(this.customerSync){
                     this.customerSync.unobserve();
@@ -357,11 +355,53 @@
                     this.orderItemsSync = null;
                 }
                 if(newValue){
-                    this.customerSync = new SyncDbPath('customers.' + newValue.id, 'name', this, '', 'customerName', false, true);
-                    this.orderItemsSync = new SyncDbPath('customers.' + newValue.id, 'orderitems', this, '', 'orderItems', true, false);
+                    this.customerSync = new SyncDbPath('customers.' + newValue.id, '');
+                    this.orderItemsSync = new SyncDbList('customers.' + newValue.id + '.orderitems', this, 'orderItems');
                 } else {
                     //this.customer = null;
                 }
+            },
+            updateOrderItemTotals: function (e, item) {
+                console.log('    updating orderitem totals');
+                if(item.menuitem.type == 'Alcohol') {
+                    item.alcoholtotal = item.quantity * item.price;
+                    item.foodtotal = 0;
+                    item.tax = 0;
+                } else {
+                    item.alcoholtotal = 0;
+                    item.foodtotal = item.quantity * item.price;
+                    item.tax = item.foodtotal * 0.09;
+                }
+                item.subtotal = item.alcoholtotal + item.foodtotal;
+
+                item.total = item.alcoholtotal + item.foodtotal + item.tax;
+
+                this.updateTotals();
+            },
+            updateTotals: function () {
+                console.log('      updating customer totals');
+                var foodtotal = 0;
+                var alcoholtotal = 0;
+                var tax = 0;
+                var total = 0;
+                var itemsArray = SyncDbList.prototype.enumerateObj(this.customer.orderitems);
+                itemsArray.forEach(function(item) {
+                    alcoholtotal += Number(item.alcoholtotal);
+                    foodtotal += Number(item.foodtotal);
+
+                    tax += Number(item.tax);
+                    total += Number(item.total);
+                });
+
+                if(foodtotal*0.09 !== tax)
+                    console.log('######TAX DOES NOT MATCH#######');
+                if(foodtotal + alcoholtotal + tax !== total)
+                    console.log('######TOTAL DOES NOT MATCH#######');
+
+                this.customer.alcoholtotal = alcoholtotal;
+                this.customer.foodtotal = foodtotal;
+                this.customer.tax = tax;
+                this.customer.total = total;
             },
             toggle: function () {
                 this.isHidden = !this.isHidden;
@@ -381,19 +421,19 @@
                 var item = {
                     quantity: 1,
                     menuitem: detail,
-                    price: detail.price ? detail.price : 0,
-                    subtotal: detail.price,
-                    tax: tax,
-                    total: detail.price + tax
+                    price: detail.price || 0
                 };
+
+                this.updateOrderItemTotals(null, item);
 
                 console.log('adding order item: ' + JSON.stringify(item));
 
                 if(this.orderItemsSync)
-                    this.orderItemsSync.addItem(item);
+                    this.orderItemsSync.addItem(item, this.updateTotals.bind(this));
             },
             deleteItem: function(e, detail) {
-                this.orderItemsSync.deleteItem(detail);
+                this.orderItemsSync.deleteItem(detail, this.updateTotals.bind(this));
+                this.updateTotals();
             },
             delete: function () {
                 this.isHidden = true;
@@ -491,30 +531,25 @@
     <script>
         Polymer('orderitem-edit', {
             item: null,
+            itemChanged: function (oldValue, newValue) {
+                if(this.itemSync)
+                    this.itemSync.unobserve();
+                if(newValue)
+                    this.itemSync = new SyncDbPath('customers.' + this.customerId + '.orderitems.' + newValue.id, '');
+            },
             delete: function() {
                 this.fire('delete', this.item);
             },
             addOne: function() {
                 this.item.quantity++;
-                this.updateQuantity();
+                this.updateTotals();
             },
             subtractOne: function () {
                 this.item.quantity--;
-                this.updateQuantity();
+                this.updateTotals();
             },
-            updateQuantity: function () {
-                this.item.subtotal = this.item.quantity * this.item.price;
-                //this.$.syncOrderItem.updateQuantity(this.quantity);
-            },
-            updatePrice: function () {
-                //this.$.syncOrderItem.updatePrice(this.price);
-            },
-            updateNote: function () {
-                //this.$.syncOrderItem.updateNote(this.note);
-            },
-            updateOrderItem: function () {
-                console.log('doing update');
-
+            updateTotals: function () {
+                this.fire('update-orderitem-totals', this.item);
             },
             currency: {
                 toDOM: function (value) {
