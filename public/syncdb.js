@@ -84,27 +84,12 @@ SyncDbPath.prototype.observeDbObject = function () {
         //this.modelTarget[this.modelTargetProperty] = this.dbTarget[this.modelTargetProperty];
         //TODO: Should we call Object.deliverChangeRecords to enforce and reset cancelNextUpdate synchronously?
         //Object.deliverChangeRecords();
-        console.log('   observing dbPath: ', this.dbPath, this.dbTargetProperty, ': ', this.dbTarget);
+        //console.log('   observing dbPath: ', this.dbPath, this.dbTargetProperty, ': ', this.dbTarget);
 
         this.dbObserverInstance = this.dbObserver.bind(this);
         Object.observe(this.dbTarget, this.dbObserverInstance);
     }
 }
-//SyncDbPath.prototype.modelObserver = function (changes) {
-//    changes.forEach(function(change) {
-//        //console.log('   model changed: ', change.type, change.name, change.oldValue, change.object[change.name]);
-//        if((this.modelTargetProperty === '' || change.name === this.modelTargetProperty) && typeof change.oldValue !== 'undefined') {
-////TODO: Try cancelNextUpdate with Object.deliverChangeRecords (in setModelValue)
-////            if(this.cancelNextUpdate){
-////                this.cancelNextUpdate = false;
-////                console.log('       model update canceled: ', change.type, change.name, change.oldValue, change.object[change.name]);
-////            } else {
-//                console.log('        sending model update: ', change.type, change.name, change.oldValue, change.object[change.name]);
-//                syncDb.update(this.dbPath + '.' + change.name, change.object[change.name]); // should be same as this.modelTarget[this.modelTargetProperty]
-//            //}
-//        }
-//    }.bind(this));
-//};
 SyncDbPath.prototype.dbObserver = function (changes) {
     changes.forEach(function(change) {
 //        if(this.dbTargetProperty === '' || change.name === this.dbTargetProperty) { // && typeof change.oldValue !== 'undefined')
@@ -121,6 +106,7 @@ SyncDbPath.prototype.dbObserver = function (changes) {
     }.bind(this));
 };
 SyncDbPath.prototype.dbChangedListener = function (e) {
+    this.unobserve();
     this.dbObj = e.detail;
     this.observeDbObject();
 };
@@ -133,10 +119,6 @@ SyncDbPath.prototype.unobserve = function () {
 
     document.removeEventListener('dbchanged', this.dbChangedListenerInstance);
 }
-
-
-
-
 
 
 
@@ -216,10 +198,6 @@ SyncDbList.prototype.unobserve = function () {
 
 
 
-
-
-
-
 function SyncDb() {
     this.syncId = this.makeGuid();
     this.socket = io();
@@ -233,9 +211,9 @@ function SyncDb() {
     }.bind(this));
 
     this.socket.on('update', function (id, path, value, requestId) {
-        console.log('   update rcvd: ', path, JSON.stringify(value));
+        console.log('   update rcvd: ', path, value);
         PathHelper.prototype.setValue(this.db, path, value);
-        this.doCallback(requestId);
+        this.doCallback(requestId, value);
     }.bind(this));
 
     this.socket.on('delete', function (id, path, value, requestId) {
@@ -268,12 +246,12 @@ SyncDb.prototype.doCommand = function (command, path, item, callback) {
         this.callbacks[requestId] = callback;
     }
     this.socket.emit(command, this.syncId, path, item, requestId);
-    console.log('emitting command: ' + command);
+    //console.log('emitting command: ' + command);
 };
-SyncDb.prototype.doCallback = function (requestId) {
+SyncDb.prototype.doCallback = function (requestId, value) {
     if(requestId && this.callbacks[requestId]){
-        console.log('----doing callback: ', requestId); //, this.callbacks, this.callback[requestId]);
-        this.callbacks[requestId].call();
+        console.log('----doing callback: ', requestId, value); //, this.callbacks, this.callback[requestId]);
+        this.callbacks[requestId](value);
         console.log('----deleting callback: ', requestId);
         delete this.callbacks[requestId];
     }

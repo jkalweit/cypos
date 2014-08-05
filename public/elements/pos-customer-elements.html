@@ -7,6 +7,7 @@
 <link rel="import" href="../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-toggle-button/paper-toggle-button.html">
 
 <polymer-element name="customer-summary-list">
     <template>
@@ -33,7 +34,7 @@
 
             #header {
                 width: 100%;
-                height: 40px;
+                height: 80px;
                 line-height: 40px;
                 position: absolute;
                 top: 0;
@@ -48,7 +49,7 @@
                 margin: 0;
                 padding: 0;
                 position: absolute;
-                top: 40px;
+                top: 80px;
                 left: 0;
                 bottom: 0;
                 width: 100%;
@@ -61,15 +62,23 @@
             .off {
                 color: rgba(255,255,255,0.37);
             }
+
+            #header /deep/ input {
+                               color: white;
+                               background-color: #673ab7;
+                               text-align: center;
+                           }
         </style>
         <core-signals on-core-signal-customer-delete="{{deleteCustomer}}"></core-signals>
-        <div id="container">
+        <div id="container" class="{{ { hidden: isHidden } | tokenList }}">
             <div id="header">
-                <span style="font-weight: bold; font-size: 20px;">Customers</span>
+                <paper-icon-button icon="check" style="float: right" on-click="{{toggleShowpaid}}" class="{{ { off: !showpaid } | tokenList }}"></paper-icon-button>
+                <!--<paper-icon-button icon="menu" style="float: right" on-click="{{toggle}}"></paper-icon-button>-->
+                <span style="font-weight: bold; font-size: 20px;">Customers</span> <br/>
+                <paper-icon-button icon="add" style="float: right" on-click="{{addCustomer}}"></paper-icon-button>
+                <core-input id="nameInput" value="{{customerName | uppercase}}" on-keypress="{{keypressHandler}}" style="position: absolute; left: 0; top: 40px; height: 30px; width: 280px"></core-input>
             </div>
             <div id="scroll-content">
-                <input value="{{customerName}}" />
-                <button on-click="{{addCustomer}}">Add</button>
                 <template repeat="{{customer in customers}}">
                     <customer-summary customer="{{customer}}" on-delete="{{deleteCustomer}}"></customer-summary>
                 </template>
@@ -78,6 +87,8 @@
     </template>
     <script>
         Polymer('customer-summary-list', {
+            isHidden: false,
+            showpaid: false,
             ready: function() {
                 this.customersSync = new SyncDbList('customers', this, 'customers');
             },
@@ -92,10 +103,29 @@
                     paid: false
                 };
 
-                this.customersSync.addItem(customer);
+                var self = this; // workaround for callback
+                this.customersSync.addItem(customer, function (newCustomer) {
+                    this.fire('core-signal', { name: 'customer-edit', data: newCustomer });
+                }.bind(this));
+                this.customerName = '';
             },
             deleteCustomer: function (e, customer) {
                 this.customersSync.deleteItem(customer);
+            },
+            toggle: function () {
+                this.isHidden = !this.isHidden;
+            },
+            toggleShowpaid: function () {
+                this.showpaid = !this.showpaid;
+            },
+            keypressHandler: function (e) {
+                if (e.keyCode == 13) {
+                    this.customerName = this.uppercase.toModel(this.$.nameInput.inputValue);
+                    console.log('nameInput', this.$.nameInput.inputValue, this.customerName);
+
+                    this.addCustomer();
+                    this.$.nameInput.inputValue = '';
+                }
             },
             currency: {
                 toDOM: function (value) {
@@ -103,6 +133,16 @@
                 },
                 toModel: function (value) {
                     return value;
+                }
+            },
+            uppercase: {
+                toDOM: function (value) {
+                    if(value)
+                        return value.toUpperCase();
+                },
+                toModel: function (value) {
+                    if(value)
+                        return value.toUpperCase();
                 }
             }
         });
@@ -126,22 +166,35 @@
                 background-color: #fff59d;
             }
 
-            /*#container.paid {*/
-            /*background-color: rgba(0,0,0,0.12);*/
-            /*color: rgba(0,0,0,0.57);*/
-            /*}*/
+            #container.paid {
+                background-color: rgba(0,0,0,0.12);
+                color: rgba(0,0,0,0.57);
+                padding-top: 10px;
+                padding-bottom: 10px;
+            }
 
-            /*#container.paid.selected {*/
-            /*background-color: rgba(149,117,205,0.5);*/
-            /*color: rgba(0,0,0,0.57);*/
-            /*}*/
+            #container h2 {
+                margin-top: 10px;
+                margin-bottom: 20px;
+            }
+
+            #container.paid h2 {
+                margin-top: 10px;
+                margin-bottom: 10px;
+            }
+
+            #container.paid.selected {
+            background-color: rgba(149,117,205,0.5);
+            color: rgba(0,0,0,0.57);
+            }
 
         </style>
         <core-signals on-core-signal-customer-selected="{{selected}}"></core-signals>
         <div id="container" on-click="{{select}}" class="{{ {selected: isSelected, paid: customer.paid } | tokenList }}">
             <template if="{{customer.paid}}">
-                <div style="float: right">
+                <div style="float: right; margin-top: 13px">
                     <core-icon icon="check"></core-icon>
+                    <b style="font-size: 16px; margin-left: 5px; position: relative; top: 2px">{{customer.total | currency}}</b>
                 </div>
             </template>
 
@@ -240,7 +293,7 @@
                 bottom: 0;
                 left: 0;
                 height: 560px;
-                width: 360px;
+                width: 320px;
                 overflow: hidden;
                 background-color: #ffffff;
                 z-index: 30;
@@ -329,10 +382,10 @@
             </div>
 
             <div id="footer">
-                <div style="position: absolute; left: 0; top: 0; height: 100%; width: 200px; padding: 10px; line-height: 32px">
+                <div style="position: absolute; left: 0; top: 0; height: 100%; width: 150px; padding: 10px; line-height: 32px">
                     <span>Paid:</span> <paper-toggle-button checked="{{customer.paid}}" style="position: relative; top: 3px; left: 15px"></paper-toggle-button>
                 </div>
-                <div style="position: absolute; left: 200px; top: 0; height: 100%; right: 0; padding: 10px;">
+                <div style="position: absolute; left: 150px; top: 0; height: 100%; right: 0; padding: 10px;">
                     Food: <span style="float: right">{{customer.foodtotal | currency}}</span><br/>
                     Tax:  <span style="float: right">{{customer.tax | currency}}</span><br/>
                     Alcohol: <span style="float: right">{{customer.alcoholtotal | currency}}</span><br/>
@@ -363,18 +416,20 @@
             },
             updateOrderItemTotals: function (e, item) {
                 console.log('    updating orderitem totals');
+//                item.quantity = Number(item.quantity);
+//                item.price = Number(item.price);
                 if(item.menuitem.type == 'Alcohol') {
-                    item.alcoholtotal = item.quantity * item.price;
+                    item.alcoholtotal = (Number(item.quantity) * Number(item.price)).toFixed(2);
                     item.foodtotal = 0;
                     item.tax = 0;
                 } else {
                     item.alcoholtotal = 0;
-                    item.foodtotal = item.quantity * item.price;
-                    item.tax = item.foodtotal * 0.09;
+                    item.foodtotal = (Number(item.quantity) * Number(item.price)).toFixed(2);
+                    item.tax = (Number(item.foodtotal) * 0.09).toFixed(2);
                 }
-                item.subtotal = item.alcoholtotal + item.foodtotal;
+                item.subtotal = (Number(item.alcoholtotal) + Number(item.foodtotal)).toFixed(2);
 
-                item.total = item.alcoholtotal + item.foodtotal + item.tax;
+                item.total = (Number(item.alcoholtotal) + Number(item.foodtotal) + Number(item.tax)).toFixed(2);
 
                 this.updateTotals();
             },
@@ -393,15 +448,15 @@
                     total += Number(item.total);
                 });
 
-                if(foodtotal*0.09 !== tax)
+                if((Number(foodtotal)*0.09).toFixed(2) !== tax)
                     console.log('######TAX DOES NOT MATCH#######');
-                if(foodtotal + alcoholtotal + tax !== total)
+                if(Number(foodtotal) + Number(alcoholtotal) + Number(tax) !== total)
                     console.log('######TOTAL DOES NOT MATCH#######');
 
-                this.customer.alcoholtotal = alcoholtotal;
-                this.customer.foodtotal = foodtotal;
-                this.customer.tax = tax;
-                this.customer.total = total;
+                this.customer.alcoholtotal = Number(alcoholtotal).toFixed(2);
+                this.customer.foodtotal = Number(foodtotal).toFixed(2);
+                this.customer.tax = Number(tax).toFixed(2);
+                this.customer.total = Number(total).toFixed(2);
             },
             toggle: function () {
                 this.isHidden = !this.isHidden;
@@ -413,15 +468,13 @@
                 this.customer = detail;
                 this.isHidden = false;
             },
-            addOrderItem: function (e, detail) {
-                if(!this.customer || this.paid)
+            addOrderItem: function (e, menuitem) {
+                if(!this.customer || this.customer.paid)
                     return;
-                var menuitem = detail;
-                var tax = menuitem.type === 'Alcohol' ? 0 : (Number(menuitem.price) * 0.09).toFixed(2);
                 var item = {
                     quantity: 1,
-                    menuitem: detail,
-                    price: detail.price || 0
+                    menuitem: menuitem,
+                    price: menuitem.price || 0
                 };
 
                 this.updateOrderItemTotals(null, item);
@@ -514,16 +567,16 @@
         <div id="container">
             <div style="float: left; background-color: red; width: 35px">
                 <paper-icon-button icon="add-circle-outline" style="margin: 0; padding: 0; position: absolute; top: -5px; left: 0px; width: 30px; height: 30px;" on-click="{{addOne}}"></paper-icon-button>
-                <core-input class="center" value="{{item.quantity}}" on-change="{{updateQuantity}}" style="position: absolute; top: 28px; left: 5px; height: 20px; width: 30px; margin: 0; padding: 0;"></core-input>
+                <core-input class="center" value="{{item.quantity}}" on-change="{{updateTotals}}" style="position: absolute; top: 28px; left: 5px; height: 20px; width: 30px; margin: 0; padding: 0;"></core-input>
                 <paper-icon-button icon="remove-circle-outline" style="margin: 0; padding: 0; position: absolute; top: 43px; left: 0px; width: 30px; height: 30px;" on-click="{{subtractOne}}"></paper-icon-button>
             </div>
             <div style="margin-left: 40px; padding: 5px;">
                 <paper-icon-button icon="delete" style="float: right; margin: 0; padding: 0; position: relative; top: -10px;" on-click="{{delete}}"></paper-icon-button>
                 <span style="float: right">{{item.subtotal | currency}}</span>
-                <core-input class="center" value="{{item.price}}" on-change="{{updatePrice}}" style="width: 50px; float: right; margin-right: 5px;"></core-input>
+                <core-input class="center" value="{{item.price}}" on-change="{{updateTotals}}" style="width: 50px; float: right; margin-right: 5px;"></core-input>
                 <span style="font-weight: normal; position: relative; top: 7px; left: 0px;">{{item.menuitem.name}}</span>
                 <br/>
-                <paper-input multiline on-change="{{updateNote}}" value="{{item.note}}" style="position: relative; left: 0px; top: 0px; width: 16em;"></paper-input>
+                <paper-input multiline value="{{item.note}}" style="position: relative; left: 0px; top: 0px; width: 12em;"></paper-input>
             </div>
             <br style="clear: both" />
         </div>

@@ -1,4 +1,6 @@
 <link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/core-signals/core-signals.html">
+<link rel="import" href="../bower_components/paper-ripple/paper-ripple.html">
 
 <polymer-element name="menu-category-list">
     <template>
@@ -49,13 +51,16 @@
                 z-index: 41;
             }
         </style>
-        <div id="container">
+        <core-signals on-core-signal-showmenu="{{showMenu}}"></core-signals>
+        <core-signals on-core-signal-hidemenu="{{hideMenu}}"></core-signals>
+        <div id="container" class="{{ { hidden: isHidden } | tokenList }}">
             <div id="header">
+                <paper-icon-button icon="menu" style="float: left" on-click="{{toggle}}"></paper-icon-button>
                 <span style="font-weight: bold; font-size: 20px;">Menu Items</span>
             </div>
             <div id="scroll-content">
                 <template repeat="{{category in categories}}">
-                    <menu-category category="{{category}}"></menu-category>
+                    <menu-category category="{{category}}" on-menuitem-selected="{{menuitemSelected}}"></menu-category>
                 </template>
             </div>
         </div>
@@ -63,8 +68,22 @@
     <script>
         Polymer('menu-category-list', {
             categories: null,
+            isHidden: false,
             ready: function () {
                 this.categoriesSync = new SyncDbList('menu.categories', this, 'categories');
+            },
+            toggle: function () {
+                this.isHidden = !this.isHidden;
+            },
+            showMenu: function () {
+                this.isHidden = false;
+            },
+            hideMenu: function () {
+                this.isHidden = true;
+            },
+            menuitemSelected: function (e, menuitem) {
+                if(!this.isHidden)
+                    this.fire('core-signal', { name: 'menuitem-selected', data:  menuitem});
             }
         });
     </script>
@@ -89,7 +108,7 @@
                 <span style="font-weight: bold">{{category.name}}</span>
             </div>
             <template repeat="{{item in category.items | enumerateObj }}">
-                <menu-item categoryId="{{category.id}}" item="{{item}}"></menu-item>
+                <menu-item categoryId="{{category.id}}" item="{{item}}" on-selected="{{menuitemSelected}}"></menu-item>
             </template>
         </div>
     </template>
@@ -99,6 +118,9 @@
             category: null,
             ready: function() {
 //                this.categoriesSync = new SyncDbPath('menu.categories', this, 'categories', true);
+            },
+            menuitemSelected: function (e, menuitem) {
+                this.fire('menuitem-selected', menuitem);
             },
             enumerateObj: function (obj) {
                 var result = [];
@@ -127,8 +149,17 @@
                 overflow: hidden;
                 z-index: 23;
             }
+            paper-ripple {
+                position: absolute;
+                color: #259b24;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                right: 0;
+            }
         </style>
         <div id="container" on-click="{{select}}">
+            <paper-ripple></paper-ripple>
             <span style="float: right">{{item.price | currency}}</span>
             <span>{{item.name}}</span>
         </div>
@@ -138,7 +169,7 @@
         Polymer('menu-item', {
             item: null,
             select: function () {
-                this.fire('core-signal', { name: 'menuitem-selected', data: this.item });
+                this.fire('selected', this.item);
             },
             currency: {
                 toDOM: function (value) {
