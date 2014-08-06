@@ -165,12 +165,12 @@ SyncDbList.prototype.enumerateObserver = function (changes) {
         if(change.type === 'add'){
             var value = change.object[change.name];
             this.enumerated.push(value);
-            console.log('      enumerated added: ', change.type, change.name, change.oldValue, value);
+            //console.log('      enumerated added: ', change.type, change.name, change.oldValue, value);
         } else if (change.type === 'delete') {
             for (var n = this.enumerated.length-1; n >= 0; n--) {
                 if (this.enumerated[n].id === change.oldValue.id) {
                     this.enumerated.splice(n, 1);
-                    console.log('     deleted item from enumerated at: ' + n);
+                    //console.log('     deleted item from enumerated at: ' + n);
                 }
             }
         } else
@@ -250,9 +250,9 @@ SyncDb.prototype.doCommand = function (command, path, item, callback) {
 };
 SyncDb.prototype.doCallback = function (requestId, value) {
     if(requestId && this.callbacks[requestId]){
-        console.log('----doing callback: ', requestId, value); //, this.callbacks, this.callback[requestId]);
+        //console.log('----doing callback: ', requestId, value); //, this.callbacks, this.callback[requestId]);
         this.callbacks[requestId](value);
-        console.log('----deleting callback: ', requestId);
+        //console.log('----deleting callback: ', requestId);
         delete this.callbacks[requestId];
     }
 };

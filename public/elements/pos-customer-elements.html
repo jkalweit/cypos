@@ -7,6 +7,7 @@
 <link rel="import" href="../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-shadow/paper-shadow.html">
 <link rel="import" href="../bower_components/paper-toggle-button/paper-toggle-button.html">
 
 <polymer-element name="customer-summary-list">
@@ -43,6 +44,7 @@
                 color: #ffffff;
                 text-align: center;
                 z-index: 19;
+                border-bottom: 1px solid #311b92;
             }
 
             #scroll-content {
@@ -64,23 +66,31 @@
             }
 
             #header /deep/ input {
-                               color: white;
-                               background-color: #673ab7;
-                               text-align: center;
-                           }
+                color: #ffffff;
+                background-color: #9575cd;
+                text-align: center;
+                margin: 0;
+                padding: 0;
+                border: none;
+                height: 40px;
+            }
         </style>
         <core-signals on-core-signal-customer-delete="{{deleteCustomer}}"></core-signals>
         <div id="container" class="{{ { hidden: isHidden } | tokenList }}">
             <div id="header">
-                <paper-icon-button icon="check" style="float: right" on-click="{{toggleShowpaid}}" class="{{ { off: !showpaid } | tokenList }}"></paper-icon-button>
+                <paper-shadow z="2"></paper-shadow>
+                <paper-icon-button icon="check" style="position: absolute; left: 280px; top: 0px;" on-click="{{toggleShowpaid}}" class="{{ { off: !showpaid } | tokenList }}"></paper-icon-button>
                 <!--<paper-icon-button icon="menu" style="float: right" on-click="{{toggle}}"></paper-icon-button>-->
                 <span style="font-weight: bold; font-size: 20px;">Customers</span> <br/>
-                <paper-icon-button icon="add" style="float: right" on-click="{{addCustomer}}"></paper-icon-button>
-                <core-input id="nameInput" value="{{customerName | uppercase}}" on-keypress="{{keypressHandler}}" style="position: absolute; left: 0; top: 40px; height: 30px; width: 280px"></core-input>
+                <paper-icon-button icon="add" style="position: absolute; left: 280px; top: 38px;" on-click="{{addCustomer}}"></paper-icon-button>
+                <input id="nameInput" value="{{customerName | uppercase}}" on-keypress="{{keypressHandler}}" style="position: absolute; left: 2px; top: 40px; height: 38px; width: 280px" />
             </div>
             <div id="scroll-content">
-                <template repeat="{{customer in customers}}">
-                    <customer-summary customer="{{customer}}" on-delete="{{deleteCustomer}}"></customer-summary>
+                <template repeat="{{customer in customersFiltered }}">
+                    <!--<template if="{{ (showpaid || !customer.paid) && ({ customer: customer, filter: customerName } | filterByName) }}">-->
+                    <template if="{{ { customer: customer, filter: customerName, showpaid: showpaid } | filterCustomers }}">
+                        <customer-summary customer="{{customer}}" on-delete="{{deleteCustomer}}"></customer-summary>
+                    </template>
                 </template>
             </div>
         </div>
@@ -91,6 +101,29 @@
             showpaid: false,
             ready: function() {
                 this.customersSync = new SyncDbList('customers', this, 'customers');
+            },
+            filterCustomers: function (filterObj) {
+                //console.log('filter: ', filterObj.customer.name.toUpperCase(), filterObj.filter.toUpperCase());
+                return this.filterByShowPaid(filterObj) && this.filterByName(filterObj);
+            },
+            filterByName: function (filterObj) {
+                if(filterObj.filter) {
+                    return filterObj.customer.name.toUpperCase().indexOf(filterObj.filter.toUpperCase()) > -1;
+                } else
+                    return true;
+            },
+            filterByShowPaid: function (filterObj) {
+                if(filterObj.showpaid)
+                    return true;
+                else
+                    return !filterObj.customer.paid;
+            },
+            customersChanged: function (oldValue, newValue) {
+                console.log('customers changed: ', oldValue, newValue);
+                this.customersFiltered = [];
+                this.customers.forEach(function (value) {
+                    this.customersFiltered.push(value);
+                }.bind(this));
             },
             addCustomer: function () {
                 var customer = {
@@ -120,11 +153,11 @@
             },
             keypressHandler: function (e) {
                 if (e.keyCode == 13) {
-                    this.customerName = this.uppercase.toModel(this.$.nameInput.inputValue);
-                    console.log('nameInput', this.$.nameInput.inputValue, this.customerName);
+                    this.customerName = this.uppercase.toModel(this.$.nameInput.value);
+                    console.log('nameInput', this.$.nameInput.inputvalue, this.customerName);
 
                     this.addCustomer();
-                    this.$.nameInput.inputValue = '';
+                    this.$.nameInput.value = '';
                 }
             },
             currency: {
@@ -191,6 +224,7 @@
         </style>
         <core-signals on-core-signal-customer-selected="{{selected}}"></core-signals>
         <div id="container" on-click="{{select}}" class="{{ {selected: isSelected, paid: customer.paid } | tokenList }}">
+            <paper-shadow z="1"></paper-shadow>
             <template if="{{customer.paid}}">
                 <div style="float: right; margin-top: 13px">
                     <core-icon icon="check"></core-icon>
@@ -414,22 +448,25 @@
                     //this.customer = null;
                 }
             },
+            round: function(value, digits) {
+                return Number(Number(value).toFixed(digits));
+            },
             updateOrderItemTotals: function (e, item) {
                 console.log('    updating orderitem totals');
 //                item.quantity = Number(item.quantity);
 //                item.price = Number(item.price);
                 if(item.menuitem.type == 'Alcohol') {
-                    item.alcoholtotal = (Number(item.quantity) * Number(item.price)).toFixed(2);
+                    item.alcoholtotal = this.round(Number(item.quantity) * Number(item.price), 2);
                     item.foodtotal = 0;
                     item.tax = 0;
                 } else {
                     item.alcoholtotal = 0;
-                    item.foodtotal = (Number(item.quantity) * Number(item.price)).toFixed(2);
-                    item.tax = (Number(item.foodtotal) * 0.09).toFixed(2);
+                    item.foodtotal = this.round(Number(item.quantity) * Number(item.price), 2);
+                    item.tax = this.round(Number(item.foodtotal) * 0.09, 2);
                 }
-                item.subtotal = (Number(item.alcoholtotal) + Number(item.foodtotal)).toFixed(2);
+                item.subtotal = this.round(Number(item.alcoholtotal) + Number(item.foodtotal), 2);
 
-                item.total = (Number(item.alcoholtotal) + Number(item.foodtotal) + Number(item.tax)).toFixed(2);
+                item.total = this.round(Number(item.alcoholtotal) + Number(item.foodtotal) + Number(item.tax), 2);
 
                 this.updateTotals();
             },
@@ -448,15 +485,15 @@
                     total += Number(item.total);
                 });
 
-                if((Number(foodtotal)*0.09).toFixed(2) !== tax)
-                    console.log('######TAX DOES NOT MATCH#######');
-                if(Number(foodtotal) + Number(alcoholtotal) + Number(tax) !== total)
-                    console.log('######TOTAL DOES NOT MATCH#######');
+                if(this.round(foodtotal*0.09, 2) !== this.round(tax, 2))
+                    console.log('######TAX DOES NOT MATCH#######', this.round(foodtotal*0.09, 2), this.round(tax, 2));
+                if(this.round(foodtotal + alcoholtotal + tax, 2) !== this.round(total, 2))
+                    console.log('######TOTAL DOES NOT MATCH#######', this.round(foodtotal + alcoholtotal + tax, 2), this.round(total, 2));
 
-                this.customer.alcoholtotal = Number(alcoholtotal).toFixed(2);
-                this.customer.foodtotal = Number(foodtotal).toFixed(2);
-                this.customer.tax = Number(tax).toFixed(2);
-                this.customer.total = Number(total).toFixed(2);
+                this.customer.alcoholtotal = this.round(alcoholtotal, 2);
+                this.customer.foodtotal = this.round(foodtotal, 2);
+                this.customer.tax = this.round(tax, 2);
+                this.customer.total = this.round(total, 2);
             },
             toggle: function () {
                 this.isHidden = !this.isHidden;
@@ -474,7 +511,7 @@
                 var item = {
                     quantity: 1,
                     menuitem: menuitem,
-                    price: menuitem.price || 0
+                    price: Number(menuitem.price) || 0
                 };
 
                 this.updateOrderItemTotals(null, item);

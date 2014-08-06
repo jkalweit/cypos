@@ -4,6 +4,17 @@
 
 var port = process.env.PORT || 1337;
 
+//var printer = require('printer');
+//printer.printDirect({data:"print from Node.JS"
+//    , printer:"PrimoPDF"
+//    , type: "TEXT"
+//    , success:function(){
+//        console.log("ok");
+//    }
+//    , error:function(err){console.log(err);}
+//});
+
+
 var fs = require('fs');
 var http = require('http');
 var server = http.createServer(function (req, res) {
@@ -205,3 +216,5 @@ io.on('connection', function (socket) {
     /***** App Specific Code *******/
 
 });
+
+
