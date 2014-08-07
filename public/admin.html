@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, target-densitydpi=device-dpi"/>
+    <title>ADMIN: CY POS</title>
+
+    <link href="bower_components/font-roboto/roboto.html" rel="import">
+    <script src='https://cdn.firebase.com/js/client/1.0.15/firebase.js'></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="syncdb.js"></script>
+
+    <style>
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'RobotoDraft', sans-serif;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        #container {
+            margin: 0;
+            padding: 0;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #777777;
+        }
+
+    </style>
+
+</head>
+<body touch-action="auto">
+
+<div id="container">
+    <button onclick="copyMenuFromFirebase()">Copy Menu from Firebase</button>
+</div>
+<script>
+
+    var syncdb = new SyncDb();
+
+    function copyMenuFromFirebase() {
+
+        syncdb.delete('menu', function () {
+
+
+
+            var myDataRef = new Firebase('https://cydb.firebaseio.com/');
+            var categories = myDataRef.child('menu').child('categories');
+            categories.on('value', function(cats) {
+                var catsArray = [];
+                var catsObj = cats.val();
+                for(key in catsObj){
+                    var catObj = catsObj[key];
+                    var category = {
+                        name: catObj.name,
+                        items: {
+                            currId: 0
+                        }
+                    };
+                    for(key2 in catObj.menuitems) {
+                        var olditem = catObj.menuitems[key2];
+                        var newitem = {
+                            id: ++category.items.currId,
+                            name: olditem.name,
+                            price: olditem.price,
+                            type: olditem.class,
+                            sortorder: olditem.hotkey
+                        };
+                        category.items[newitem.id] = newitem;
+                    }
+                    syncdb.addItem('menu.categories', category);
+                }
+            }.bind(this));
+        }.bind(this));
+    }
+
+</script>
+</body>
+</html>
+
+
+
+

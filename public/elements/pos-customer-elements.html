@@ -84,9 +84,10 @@
                 <span style="font-weight: bold; font-size: 20px;">Customers</span> <br/>
                 <paper-icon-button icon="add" style="position: absolute; left: 280px; top: 38px;" on-click="{{addCustomer}}"></paper-icon-button>
                 <input id="nameInput" value="{{customerName | uppercase}}" on-keypress="{{keypressHandler}}" style="position: absolute; left: 2px; top: 40px; height: 38px; width: 280px" />
+                <input id="nameInput" value="{{customerName | uppercase}}" on-keypress="{{keypressHandler}}" style="position: absolute; left: 2px; top: 40px; height: 38px; width: 280px" />
             </div>
             <div id="scroll-content">
-                <template repeat="{{customer in customersFiltered }}">
+                <template repeat="{{customer in customers }}">
                     <!--<template if="{{ (showpaid || !customer.paid) && ({ customer: customer, filter: customerName } | filterByName) }}">-->
                     <template if="{{ { customer: customer, filter: customerName, showpaid: showpaid } | filterCustomers }}">
                         <customer-summary customer="{{customer}}" on-delete="{{deleteCustomer}}"></customer-summary>
@@ -118,16 +119,10 @@
                 else
                     return !filterObj.customer.paid;
             },
-            customersChanged: function (oldValue, newValue) {
-                console.log('customers changed: ', oldValue, newValue);
-                this.customersFiltered = [];
-                this.customers.forEach(function (value) {
-                    this.customersFiltered.push(value);
-                }.bind(this));
-            },
             addCustomer: function () {
                 var customer = {
                     name: this.customerName,
+                    created: new Date(),
                     orderitems: {},
                     foodtotal: 0,
                     alcoholtotal: 0,
@@ -196,7 +191,7 @@
             }
 
             #container.selected {
-                background-color: #fff59d;
+                background-color: #d0f8ce;
             }
 
             #container.paid {
@@ -233,13 +228,14 @@
             </template>
 
             <h2>{{customer.name}}</h2>
+            <span style="position: absolute; right: 20px; top: 37px;">{{customer.created | formatDate }}</span>
 
             <template if="{{!customer.paid}}">
                 <template repeat="{{item in orderItems}}">
                     <orderitem-summary customerId="{{customer.id}}" item="{{item}}"></orderitem-summary>
                 </template>
                 <br/>
-                <b style="font-size: 20px">Total:  <span style="float: right">{{customer.total | currency}}</span></b>
+                <span style="font-size: 20px">Total:  <span style="float: right">{{customer.total | currency}}</span></span>
             </template>
         </div>
     </template>
@@ -276,6 +272,25 @@
                 toModel: function (value) {
                     return value;
                 }
+            },
+            formatDate: function (value) {
+                var date = new Date(value);
+                var currHour = date.getHours();
+                var m = 'am';
+                if(currHour > 12) {
+                    currHour = currHour - 12;
+                    m = 'pm';
+                }
+                if(currHour === 0)
+                    currHour = 12;
+//                if(currHour < 10)
+//                    currHour = '0' + currHour;
+
+                var currMinute = date.getMinutes();
+                if(currMinute < 10)
+                    currMinute = "0" + currMinute;
+
+                return currHour + ':' + currMinute + m;
             }
         });
     </script>
@@ -326,7 +341,7 @@
                 position: absolute;
                 bottom: 0;
                 left: 0;
-                height: 560px;
+                height: 100%;
                 width: 320px;
                 overflow: hidden;
                 background-color: #ffffff;
@@ -364,7 +379,7 @@
                 width: 100%;
                 overflow-x: hidden;
                 overflow-y: auto;
-                background-color: #fff59d;
+                background-color: #d0f8ce;
                 z-index: 31;
             }
 
@@ -398,6 +413,7 @@
         <core-signals on-core-signal-menuitem-selected="{{addOrderItem}}"></core-signals>
 
         <div id="container" class="{{ {hidden: isHidden } | tokenList }}">
+            <paper-shadow z="1"></paper-shadow>
             <div id="header">
                 <paper-menu-button icon="delete" style="float: left; padding: 0 0 0 5px;">
                     <paper-item label="" style="color: #000000"></paper-item>
