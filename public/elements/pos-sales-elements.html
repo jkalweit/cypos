@@ -1,0 +1,118 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/core-signals/core-signals.html">
+<link rel="import" href="../bower_components/core-icon/core-icon.html">
+<link rel="import" href="../bower_components/core-icons/core-icons.html">
+<link rel="import" href="../bower_components/core-input/core-input.html">
+<link rel="import" href="../bower_components/paper-menu-button/paper-menu-button.html">
+<link rel="import" href="../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-shadow/paper-shadow.html">
+<link rel="import" href="../bower_components/paper-toggle-button/paper-toggle-button.html">
+
+<polymer-element name="sales-by-item">
+    <template>
+        <style>
+            #container {
+                margin: 0;
+                padding: 0px;
+                position: absolute;
+                top: 0;
+                left: 340px;
+                height: 100%;
+                width: 280px;
+                overflow: hidden;
+                border-right: 1px solid black;
+                /*background-color: red;*/
+                z-index: 0;
+            }
+
+            #container.hidden {
+                /*left: -280px;*/
+            }
+
+            #header {
+                width: 100%;
+                height: 40px;
+                line-height: 40px;
+                position: absolute;
+                top: 0;
+                left: 0;
+                text-align: center;
+                /*background-color: #311b92;*/
+                color: rgba(255, 255, 255, 0.87);
+                z-index: 1;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+            }
+
+            #scroll-content {
+                margin: 0;
+                padding: 0;
+                position: absolute;
+                top: 40px;
+                left: 0;
+                bottom: 0;
+                width: 100%;
+                overflow-x: hidden;
+                overflow-y: auto;
+                /*background-color: #ede7f6;*/
+                z-index: 0;
+            }
+
+        </style>
+        <div id="container">
+            <div id="header">
+                <span style="font-weight: bold; font-size: 20px;">Sales</span> <br/>
+            </div>
+            <div id="scroll-content">
+                <button on-click="{{calculateSales}}">Calculate Sales</button>
+                <br/>
+                Food: <span style="float: right">{{sales.totals.food | currency}}</span><br/>
+                Tax: <span style="float: right">{{sales.totals.tax | currency}}</span><br/>
+                Alcohol: <span style="float: right">{{sales.totals.alcohol | currency}}</span><br/>
+                Total: <span style="float: right">{{sales.totals.total | currency}}</span><br/>
+            </div>
+        </div>
+    </template>
+    <script>
+        Polymer('sales-by-item', {
+            ready: function () {
+                syncDb.getDb(function (db) {
+                    this.db = db;
+                    if (!db.sales) {
+                        db.sales = {
+                            totals: {
+                                food: 0,
+                                tax: 0,
+                                alcohol: 0,
+                                total: 0
+                            }
+                        };
+                    }
+                    this.sales = db.sales;
+                    this.syncSales = new SyncDbPath('sales.totals', '');
+                }.bind(this));
+            },
+            calculateSales: function () {
+                var customers = SyncDbList.prototype.enumerateObj(this.db.customers);
+                var totals = {
+                    food: 0,
+                    tax: 0,
+                    alcohol: 0,
+                    total: 0
+                };
+                customers.forEach(function (customer) {
+                    totals.food += customer.foodtotal;
+                    totals.tax += customer.tax;
+                    totals.alcohol += customer.alcoholtotal;
+                    totals.total += customer.total;
+                });
+                this.sales.totals.food = totals.food;
+                this.sales.totals.tax = totals.tax;
+                this.sales.totals.alcohol = totals.alcohol;
+                this.sales.totals.total = totals.total;
+            },
+            currency: posGlobals.formatters.currency
+        });
+    </script>
+</polymer-element>

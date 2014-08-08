@@ -202,11 +202,15 @@ function SyncDb() {
     this.syncId = this.makeGuid();
     this.socket = io();
     this.callbacks = {};
+    this.getDbCallbacks = [];
 
     this.socket.on('init', function (id, db) {
         //console.log('   init rcvd: ' + JSON.stringify(db));
         this.db = db;
         this.initialized = true;
+        while(this.getDbCallbacks.length > 0) {
+            this.getDbCallbacks.shift()(this.db);
+        }
         this.fireDbChanged();
     }.bind(this));
 
@@ -266,7 +270,13 @@ SyncDb.prototype.fireDbChanged = function () {
     //console.log(' detail: ' + JSON.stringify(this.db));
     var event = new CustomEvent('dbchanged', { 'detail': this.db });
     document.dispatchEvent(event);
-}
+};
+SyncDb.prototype.getDb = function (callback) {
+    if(this.db)
+        callback(this.db);
+    else
+        this.getDbCallbacks.push(callback);
+};
 
 
 

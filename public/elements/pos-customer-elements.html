@@ -78,9 +78,9 @@
         <core-signals on-core-signal-customer-delete="{{deleteCustomer}}"></core-signals>
         <div id="container" class="{{ { hidden: isHidden } | tokenList }}">
             <div id="header">
-                <paper-shadow z="2"></paper-shadow>
-                <paper-icon-button icon="check" style="position: absolute; left: 280px; top: 0px;" on-click="{{toggleShowpaid}}" class="{{ { off: !showpaid } | tokenList }}"></paper-icon-button>
-                <!--<paper-icon-button icon="menu" style="float: right" on-click="{{toggle}}"></paper-icon-button>-->
+                <paper-shadow z="1"></paper-shadow>
+                <paper-icon-button icon="check" style="position: absolute; left: 0px; top: 0px;" on-click="{{toggleShowpaid}}" class="{{ { off: !showpaid } | tokenList }}"></paper-icon-button>
+                <paper-icon-button icon="menu" style="position: absolute; left: 280px; top: 0px;" on-click="{{toggle}}"></paper-icon-button>
                 <span style="font-weight: bold; font-size: 20px;">Customers</span> <br/>
                 <paper-icon-button icon="add" style="position: absolute; left: 280px; top: 38px;" on-click="{{addCustomer}}"></paper-icon-button>
                 <input id="nameInput" value="{{customerName | uppercase}}" on-keypress="{{keypressHandler}}" style="position: absolute; left: 2px; top: 40px; height: 38px; width: 280px" />
@@ -108,8 +108,12 @@
                 return this.filterByShowPaid(filterObj) && this.filterByName(filterObj);
             },
             filterByName: function (filterObj) {
-                if(filterObj.filter) {
-                    return filterObj.customer.name.toUpperCase().indexOf(filterObj.filter.toUpperCase()) > -1;
+                if(!filterObj.filter)
+                    return true;
+
+                var filter = filterObj.filter.trim();
+                if(filter !== '') {
+                    return filterObj.customer.name.toUpperCase().indexOf(filter.toUpperCase()) > -1;
                 } else
                     return true;
             },
@@ -120,9 +124,14 @@
                     return !filterObj.customer.paid;
             },
             addCustomer: function () {
+                var name = this.customerName.trim();
+                if(name === '')
+                    return;
+
                 var customer = {
-                    name: this.customerName,
-                    created: new Date(),
+                    name: name,
+                    openeddate: new Date(),
+                    closeddate: null,
                     orderitems: {},
                     foodtotal: 0,
                     alcoholtotal: 0,
@@ -148,31 +157,14 @@
             },
             keypressHandler: function (e) {
                 if (e.keyCode == 13) {
-                    this.customerName = this.uppercase.toModel(this.$.nameInput.value);
-                    console.log('nameInput', this.$.nameInput.inputvalue, this.customerName);
+                    this.customerName = this.$.nameInput.value.toUpperCase();
+                    //console.log('nameInput', this.$.nameInput.inputvalue, this.customerName);
 
                     this.addCustomer();
                     this.$.nameInput.value = '';
                 }
             },
-            currency: {
-                toDOM: function (value) {
-                    return '$' + Number(value).toFixed(2).toString();
-                },
-                toModel: function (value) {
-                    return value;
-                }
-            },
-            uppercase: {
-                toDOM: function (value) {
-                    if(value)
-                        return value.toUpperCase();
-                },
-                toModel: function (value) {
-                    if(value)
-                        return value.toUpperCase();
-                }
-            }
+            uppercase: posGlobals.formatters.uppercase
         });
     </script>
 </polymer-element>
@@ -222,15 +214,16 @@
             <paper-shadow z="1"></paper-shadow>
             <template if="{{customer.paid}}">
                 <div style="float: right; margin-top: 13px">
+                    <span>{{customer.openeddate | formatDate }}</span>
                     <core-icon icon="check"></core-icon>
                     <b style="font-size: 16px; margin-left: 5px; position: relative; top: 2px">{{customer.total | currency}}</b>
                 </div>
             </template>
 
             <h2>{{customer.name}}</h2>
-            <span style="position: absolute; right: 20px; top: 37px;">{{customer.created | formatDate }}</span>
 
             <template if="{{!customer.paid}}">
+                <span style="position: absolute; right: 20px; top: 37px;">{{customer.openeddate | formatDate }}</span>
                 <template repeat="{{item in orderItems}}">
                     <orderitem-summary customerId="{{customer.id}}" item="{{item}}"></orderitem-summary>
                 </template>
@@ -265,33 +258,8 @@
                 else
                     this.isSelected = false;
             },
-            currency: {
-                toDOM: function (value) {
-                    return '$' + Number(value).toFixed(2).toString();
-                },
-                toModel: function (value) {
-                    return value;
-                }
-            },
-            formatDate: function (value) {
-                var date = new Date(value);
-                var currHour = date.getHours();
-                var m = 'am';
-                if(currHour > 12) {
-                    currHour = currHour - 12;
-                    m = 'pm';
-                }
-                if(currHour === 0)
-                    currHour = 12;
-//                if(currHour < 10)
-//                    currHour = '0' + currHour;
-
-                var currMinute = date.getMinutes();
-                if(currMinute < 10)
-                    currMinute = "0" + currMinute;
-
-                return currHour + ':' + currMinute + m;
-            }
+            currency: posGlobals.formatters.currency,
+            formatDate: posGlobals.formatters.formatDate
         });
     </script>
 </polymer-element>
@@ -318,14 +286,7 @@
     <script>
         Polymer('orderitem-summary', {
             item: null,
-            currency: {
-                toDOM: function (value) {
-                    return '$' + Number(value).toFixed(2).toString();
-                },
-                toModel: function (value) {
-                    return value;
-                }
-            }
+            currency: posGlobals.formatters.currency
         });
     </script>
 </polymer-element>
@@ -351,7 +312,11 @@
             }
 
             #container.hidden {
-                bottom: -600px;
+                height: 0;
+            }
+
+            #container.hidden #footer {
+                height: 0;
             }
 
             #header {
@@ -432,10 +397,13 @@
             </div>
 
             <div id="footer">
-                <div style="position: absolute; left: 0; top: 0; height: 100%; width: 150px; padding: 10px; line-height: 32px">
-                    <span>Paid:</span> <paper-toggle-button checked="{{customer.paid}}" style="position: relative; top: 3px; left: 15px"></paper-toggle-button>
+                <div style="position: absolute; left: 0; top: 0; height: 100%; width: 150px; padding: 10px;">
+                    Paid: <paper-toggle-button checked="{{customer.paid}}" style="position: relative; top: 3px; left: 15px"></paper-toggle-button>
+                    Opened: <span style="float: right">{{customer.openeddate | formatDate}}</span><br/>
+                    Closed: <span style="float: right">{{customer.closeddate | formatDate}}</span><br/>
+                    Visit: <span style="float: right">{{customer.visitduration | formatDuration}}</span><br/>
                 </div>
-                <div style="position: absolute; left: 150px; top: 0; height: 100%; right: 0; padding: 10px;">
+                <div style="position: absolute; left: 160px; top: 0; height: 100%; right: 0; padding: 10px;">
                     Food: <span style="float: right">{{customer.foodtotal | currency}}</span><br/>
                     Tax:  <span style="float: right">{{customer.tax | currency}}</span><br/>
                     Alcohol: <span style="float: right">{{customer.alcoholtotal | currency}}</span><br/>
@@ -446,6 +414,9 @@
     </template>
     <script>
         Polymer('customer-edit', {
+            observe: {
+                'customer.paid': 'updateClosedDate'
+            },
             customer: null,
             isHidden: true,
             customerChanged: function (oldValue, newValue) {
@@ -511,6 +482,17 @@
                 this.customer.tax = this.round(tax, 2);
                 this.customer.total = this.round(total, 2);
             },
+            updateClosedDate: function (oldValue, newValue) {
+                if(this.customer) {
+                    if(newValue && !this.customer.closeddate){
+                        this.customer.closeddate = new Date();
+                        this.customer.visitduration = moment(this.customer.closeddate) - moment(this.customer.openeddate);
+                    } else {
+                        this.customer.closeddate = null;
+                        this.customer.visitduration = null;
+                    }
+                }
+            },
             toggle: function () {
                 this.isHidden = !this.isHidden;
             },
@@ -544,6 +526,7 @@
             delete: function () {
                 this.isHidden = true;
                 this.fire('core-signal', { name: 'customer-delete', data: this.customer });
+                this.customer = null;
             },
 //            deleted: function(){
 //                //this.customer = null;
@@ -560,24 +543,10 @@
                 }, 10);
 
             },
-            currency: {
-                toDOM: function (value) {
-                    return '$' + Number(value).toFixed(2).toString();
-                },
-                toModel: function (value) {
-                    return value;
-                }
-            },
-            uppercase: {
-                toDOM: function (value) {
-                    if(value)
-                        return value.toUpperCase();
-                },
-                toModel: function (value) {
-                    if(value)
-                        return value.toUpperCase();
-                }
-            }
+            currency: posGlobals.formatters.currency,
+            uppercase: posGlobals.formatters.uppercase,
+            formatDate: posGlobals.formatters.formatDate,
+            formatDuration: posGlobals.formatters.formatDuration
         });
     </script>
 </polymer-element>
@@ -657,14 +626,7 @@
             updateTotals: function () {
                 this.fire('update-orderitem-totals', this.item);
             },
-            currency: {
-                toDOM: function (value) {
-                    return '$' + Number(value).toFixed(2).toString();
-                },
-                toModel: function (value) {
-                    return value;
-                }
-            }
+            currency: posGlobals.formatters.currency
         });
     </script>
 </polymer-element>
