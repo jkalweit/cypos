@@ -1,0 +1,214 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/core-signals/core-signals.html">
+<link rel="import" href="../bower_components/core-icon/core-icon.html">
+<link rel="import" href="../bower_components/core-icons/core-icons.html">
+<link rel="import" href="../bower_components/core-input/core-input.html">
+<link rel="import" href="../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/paper-shadow/paper-shadow.html">
+<link rel="import" href="../bower_components/paper-ripple/paper-ripple.html">
+
+<polymer-element name="orders-by-customer-list" attributes="type">
+    <template>
+        <style>
+            #container {
+                margin: 0;
+                padding: 0;
+                position: absolute;
+                top: 0;
+                left: 0;
+                height: 100%;
+                width: 100%;
+                overflow: hidden;
+                background-color: red;
+            }
+
+            #header {
+                width: 100%;
+                height: 40px;
+                line-height: 40px;
+                position: absolute;
+                top: 0;
+                left: 0;
+                background-color: #311b92;
+                color: #ffffff;
+                text-align: center;
+                border-bottom: 1px solid #311b92;
+            }
+
+            #scroll-content {
+                margin: 0;
+                padding: 0;
+                position: absolute;
+                top: 40px;
+                left: 0;
+                bottom: 0;
+                width: 100%;
+                overflow-x: hidden;
+                overflow-y: auto;
+                background-color: #ede7f6;
+                z-index: 11;
+            }
+
+            .off {
+                color: rgba(255,255,255,0.37);
+            }
+
+        </style>
+        <core-signals on-core-signal-customer-delete="{{deleteCustomer}}"></core-signals>
+        <div id="container">
+            <div id="header">
+                <paper-shadow z="1"></paper-shadow>
+                <!--<paper-icon-button icon="check" style="position: absolute; left: 0px; top: 0px;" on-click="{{toggleShowpaid}}" class="{{ { off: !showpaid } | tokenList }}"></paper-icon-button>-->
+                <span style="font-weight: bold; font-size: 20px;">{{type}} Orders</span> <br/>
+            </div>
+            <div id="scroll-content">
+                <template repeat="{{customer in customers }}">
+                    <orders-by-customer customer="{{customer}}" type="{{type}}"></orders-by-customer>
+                </template>
+            </div>
+        </div>
+    </template>
+    <script>
+        Polymer('orders-by-customer-list', {
+            ready: function() {
+                this.customersSync = new SyncDbList('customers', this, 'customers');
+            }
+        });
+    </script>
+</polymer-element>
+
+
+<polymer-element name="orders-by-customer" attributes="customer type">
+    <template>
+        <style>
+            #container {
+                margin: 10px;
+                padding: 20px;
+                width: 300px;
+                display: inline-block;
+                vertical-align: top;
+                color: rgba(0, 0, 0, 0.87);
+                background-color: #ffffff;
+                z-index: 12;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+
+            #container.selected {
+                background-color: #d0f8ce;
+            }
+
+            #container h2 {
+                margin-top: 10px;
+                margin-bottom: 20px;
+            }
+
+        </style>
+        <core-signals on-core-signal-orderitem-status-updated="{{updateHasOpenOrderItems}}"></core-signals>
+        <template if="{{hasOpenOrderItems}}">
+            <div id="container">
+                <paper-shadow z="1"></paper-shadow>
+                <h2>{{customer.name}}</h2>
+
+                <template repeat="{{item in orderItems}}">
+                    <template if="{{item.menuitem.type === type}}">
+                        <order-orderitem customerid="{{customer.id}}" item="{{item}}"></order-orderitem>
+                    </template>
+                </template>
+            </div>
+        </template>
+    </template>
+    <script>
+        Polymer('orders-by-customer', {
+            customer: null,
+            hasOpenOrderItems: false,
+            customerChanged: function (oldValue, newValue) {
+                if(this.orderItemsSync) {
+                    this.orderItemsSync.unobserve();
+                    this.orderItemsSync = null; // release reference for garbage collection
+                }
+                if(newValue){
+                    this.orderItemsSync = new SyncDbList('customers.' + newValue.id + '.orderitems', this, 'orderItems');
+                    this.updateHasOpenOrderItems();
+                }
+            },
+            orderItemsChanged: function () {
+                this.updateHasOpenOrderItems();
+            },
+            updateHasOpenOrderItems: function () {
+                if(this.orderItems) {
+                    for(var i = 0; i < this.orderItems.length; i++) {
+                        if(!this.orderItems[i].completeddate && this.orderItems[i].menuitem.type === this.type) {
+                            this.hasOpenOrderItems = true;
+                            return;
+                        }
+                    }
+                }
+                this.hasOpenOrderItems = false;
+            },
+            currency: posGlobals.formatters.currency,
+            formatDate: posGlobals.formatters.formatDate
+        });
+    </script>
+</polymer-element>
+
+
+
+<polymer-element name="order-orderitem" attributes="customerid item">
+    <template>
+        <style>
+            #container {
+                margin: 0px;
+                padding: 3px;
+                position: relative;
+                color: rgba(0, 0, 0, 0.87);
+                overflow: hidden;
+            }
+
+            paper-ripple {
+                position: absolute;
+                color: #259b24;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                right: 0;
+            }
+
+            .incomplete {
+                background-color: #e1f5fe;
+            }
+
+            .unacknowledged {
+                background-color: #5af158;
+            }
+        </style>
+        <template if="{{!item.completeddate}}">
+            <div id="container" on-click="{{selectOrderItem}}" class="{{ { incomplete: !item.completeddate, unacknowledged: !item.acknowledgeddate } | tokenList }}">
+                <paper-ripple></paper-ripple>
+                <span style="float: right">{{item.addeddate | formatDate }}</span>
+                <span>{{item.quantity != 1 ? item.quantity + ' ' : '' }}{{item.menuitem.name}}</span>
+            </div>
+        </template>
+    </template>
+    </template>
+    <script>
+        Polymer('order-orderitem', {
+            item: null,
+            itemChanged: function (oldValue, newValue) {
+                if(newValue) {
+                    var path = 'customers.' + this.customerid + '.orderitems.' + newValue.id;
+                    this.itemSync = new SyncDbPath(path, '');
+                }
+            },
+            selectOrderItem: function () {
+                if(!this.item.acknowledgeddate)
+                    this.item.acknowledgeddate = new Date();
+                else if(!this.item.completeddate)
+                    this.item.completeddate = new Date();
+                this.fire('core-signal', { name: 'orderitem-status-updated', data: this.item});
+            },
+            formatDate: posGlobals.formatters.formatDate
+        });
+    </script>
+</polymer-element>

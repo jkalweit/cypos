@@ -6,19 +6,17 @@
 <link rel="import" href="../bower_components/paper-menu-button/paper-menu-button.html">
 <link rel="import" href="../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
-<link rel="import" href="../bower_components/paper-input/paper-input.html">
-<link rel="import" href="../bower_components/paper-shadow/paper-shadow.html">
-<link rel="import" href="../bower_components/paper-toggle-button/paper-toggle-button.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
 
 <polymer-element name="sales-by-item">
     <template>
         <style>
             #container {
                 margin: 0;
-                padding: 0px;
+                padding: 0;
                 position: absolute;
                 top: 0;
-                left: 340px;
+                left: 40px;
                 height: 100%;
                 width: 280px;
                 overflow: hidden;
@@ -55,6 +53,7 @@
                 width: 100%;
                 overflow-x: hidden;
                 overflow-y: auto;
+                color: #ffffff;
                 /*background-color: #ede7f6;*/
                 z-index: 0;
             }
@@ -65,12 +64,20 @@
                 <span style="font-weight: bold; font-size: 20px;">Sales</span> <br/>
             </div>
             <div id="scroll-content">
-                <button on-click="{{calculateSales}}">Calculate Sales</button>
-                <br/>
-                Food: <span style="float: right">{{sales.totals.food | currency}}</span><br/>
-                Tax: <span style="float: right">{{sales.totals.tax | currency}}</span><br/>
-                Alcohol: <span style="float: right">{{sales.totals.alcohol | currency}}</span><br/>
-                Total: <span style="float: right">{{sales.totals.total | currency}}</span><br/>
+                <div style="margin: 10px">
+                    <paper-button on-click="{{calculateSales}}" label="Calculate Sales"></paper-button>
+                    <br/>
+                    Food: <span style="float: right; color: greenyellow;">{{sales.totals.food | currency}}</span><br/>
+                    Tax: <span style="float: right; color: greenyellow;">{{sales.totals.tax | currency}}</span><br/>
+                    Alcohol: <span style="float: right; color: greenyellow;">{{sales.totals.alcohol | currency}}</span><br/>
+                    <b>Total: <span style="float: right; color: greenyellow;">{{sales.totals.total | currency}}</span></b><br/>
+                    <br/>
+                    Customers: <span style="float: right; color: greenyellow;">{{sales.totals.customers }}</span><br/>
+                    Sales/Customer: <span style="float: right; color: greenyellow;">{{sales.totals.salespercustomer | currency}}</span><br/>
+                    <br/>
+                    Visit Hours: <span style="float: right; color: greenyellow;">{{sales.totals.visittime | formatDurationAsHours}}</span><br/>
+                    Sales/Visit Hour: <span style="float: right; color: greenyellow;">{{sales.totals.salesperhour | currency}}</span><br/>
+                </div>
             </div>
         </div>
     </template>
@@ -99,20 +106,34 @@
                     food: 0,
                     tax: 0,
                     alcohol: 0,
-                    total: 0
+                    total: 0,
+                    customers: 0,
+                    visittime: 0,
+                    salespercustomer: 0,
+                    salesperhour: 0
                 };
                 customers.forEach(function (customer) {
                     totals.food += customer.foodtotal;
                     totals.tax += customer.tax;
                     totals.alcohol += customer.alcoholtotal;
                     totals.total += customer.total;
+                    totals.customers++;
+                    totals.visittime += customer.visitduration ? customer.visitduration : moment() - moment(customer.openeddate);
                 });
-                this.sales.totals.food = totals.food;
-                this.sales.totals.tax = totals.tax;
-                this.sales.totals.alcohol = totals.alcohol;
-                this.sales.totals.total = totals.total;
+
+                for(var prop in totals)
+                    this.sales.totals[prop] = totals[prop];
+
+                this.sales.totals.salespercustomer = Number((this.sales.totals.total / this.sales.totals.customers).toFixed(2));
+                this.sales.totals.salesperhour = Number((this.sales.totals.total / moment.duration(this.sales.totals.visittime).asHours()).toFixed(2));;
             },
-            currency: posGlobals.formatters.currency
+            currency: posGlobals.formatters.currency,
+            formatDurationAsHours: function(value) {
+                if(value)
+                    return moment.duration(this.sales.totals.visittime).asHours().toFixed(1);
+                else
+                    return '';
+            }
         });
     </script>
 </polymer-element>

@@ -21,6 +21,8 @@ var server = http.createServer(function (req, res) {
 
     var file = req.url;
     if (file == '/') file = '/index.html';
+    if (file == '/bar') file = '/bar.html';
+    if (file == '/kitchen') file = '/kitchen.html';
 
     fs.readFile('public' + file, function (err, data) {
 

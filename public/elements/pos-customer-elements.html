@@ -84,7 +84,6 @@
                 <span style="font-weight: bold; font-size: 20px;">Customers</span> <br/>
                 <paper-icon-button icon="add" style="position: absolute; left: 280px; top: 38px;" on-click="{{addCustomer}}"></paper-icon-button>
                 <input id="nameInput" value="{{customerName | uppercase}}" on-keypress="{{keypressHandler}}" style="position: absolute; left: 2px; top: 40px; height: 38px; width: 280px" />
-                <input id="nameInput" value="{{customerName | uppercase}}" on-keypress="{{keypressHandler}}" style="position: absolute; left: 2px; top: 40px; height: 38px; width: 280px" />
             </div>
             <div id="scroll-content">
                 <template repeat="{{customer in customers }}">
@@ -275,8 +274,16 @@
                 -webkit-user-select: none;
                 user-select: none;
             }
+
+            .incomplete {
+                background-color: #b3e5fc;
+            }
+
+            .unacknowledged {
+                background-color: #5af158;
+            }
         </style>
-        <div id="container">
+        <div id="container" class="{{ { incomplete: !item.completeddate, unacknowledged: !item.acknowledgeddate } | tokenList }}">
             <span style="float: right">{{item.subtotal | currency}}</span>
             <span>{{item.quantity != 1 ? item.quantity + ' ' : '' }}{{item.menuitem.name}}</span>
             <br/>
@@ -509,7 +516,10 @@
                 var item = {
                     quantity: 1,
                     menuitem: menuitem,
-                    price: Number(menuitem.price) || 0
+                    price: Number(menuitem.price) || 0,
+                    addeddate: new Date(),
+                    acknowledgeddate: null,
+                    completedate: null
                 };
 
                 this.updateOrderItemTotals(null, item);
