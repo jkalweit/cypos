@@ -159,11 +159,12 @@
     <template>
         <style>
             #container {
-                margin: 0px;
-                padding: 3px;
+                margin: 5px 0 0 0;
+                padding: 10px;
                 position: relative;
                 color: rgba(0, 0, 0, 0.87);
                 overflow: hidden;
+                border-radius: 5px;
             }
 
             paper-ripple {
@@ -177,10 +178,12 @@
 
             .incomplete {
                 background-color: #e1f5fe;
+                color: #000000;
             }
 
             .unacknowledged {
-                background-color: #5af158;
+                background-color: #a3e9a4;
+                color: #000000;
             }
         </style>
         <template if="{{!item.completeddate}}">
@@ -188,6 +191,7 @@
                 <paper-ripple></paper-ripple>
                 <span style="float: right">{{item.addeddate | formatDate }}</span>
                 <span>{{item.quantity != 1 ? item.quantity + ' ' : '' }}{{item.menuitem.name}}</span>
+                <pre style="margin: 0; padding: 0;">{{item.note}}</pre>
             </div>
         </template>
     </template>

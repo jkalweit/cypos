@@ -77,7 +77,7 @@
                             <menu-category-double-list category="{{category}}" selected?="{{selectedCategory.id === category.id}}" on-selected="{{categorySelected}}"></menu-category-double-list>
                         </template>
                     </div>
-                    <div style="position: absolute; top: 0; left: 0; width: 200px; height: 100%; overflow-x: hidden; overflow-y: auto;">
+                    <div style="position: absolute; top: 0; left: 0; width: 210px; height: 100%; overflow-x: hidden; overflow-y: auto; background-color: #ffffff">
                         <template repeat="{{item in menuitems}}">
                             <menu-item item="{{item}}" on-selected="{{menuitemSelected}}"></menu-item>
                         </template>
@@ -119,6 +119,7 @@
                 if(newValue) {
                     this.menuitems = SyncDbList.prototype.enumerateObj(newValue.items);
                 }
+                console.log('updated');
             }
         });
     </script>
@@ -215,29 +216,30 @@
 
 
 
-<polymer-element name="menu-category-double-list" attributes="category">
+<polymer-element name="menu-category-double-list" attributes="category" on-click="{{fireCategorySelected}}">
     <template>
         <style>
             :host {
                 margin: 0px;
                 padding: 10px 0 10px 0;
-                position: relative;
+                display: block;
                 text-align: center;
-                color: rgba(0, 0, 0, 0.87);
-                background-color: red;
+                background-color: #d0f8ce;
                 z-index: 22;
                 border-top: 1px solid rgba(255, 255, 255, 0.25);
                 border-bottom: 2px solid rgba(0, 0, 0, 0.6);
                 border-left: 1px solid black;
+                -webkit-user-select: none;
+                user-select: none;
             }
 
-            :host[selected] {
+            :host([selected]) {
                 background-color: #ffffff;
+                /*color: rgba(0, 0, 0, 0.87);*/
+                border-left: none;
             }
         </style>
-        <div id="container" on-click="{{fireCategorySelected}}">
-            {{category.name}}
-        </div>
+        {{category.name}}
     </template>
     </template>
     <script>
