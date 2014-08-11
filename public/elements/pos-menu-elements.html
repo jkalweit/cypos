@@ -51,18 +51,37 @@
                 background-color: #d0f8ce;
                 z-index: 41;
             }
+
+            .off {
+                color: rgba(255,255,255,0.37);
+            }
+
         </style>
         <core-signals on-core-signal-showmenu="{{showMenu}}"></core-signals>
         <core-signals on-core-signal-hidemenu="{{hideMenu}}"></core-signals>
+        <core-signals on-core-signal-category-selected="{{selectCategory}}"></core-signals>
         <div id="container" class="{{ { hidden: isHidden } | tokenList }}">
             <div id="header">
                 <paper-shadow z="1"></paper-shadow>
                 <paper-icon-button icon="menu" style="float: left" on-click="{{toggle}}"></paper-icon-button>
+                <paper-icon-button icon="check" style="float: right" on-click="{{toggleDoubleList}}" class="{{ { off: !doubleList } | tokenList }}"></paper-icon-button>
                 <span style="font-weight: bold; font-size: 20px;">Menu Items</span>
             </div>
             <div id="scroll-content">
-                <template repeat="{{category in categories}}">
+                <template if="{{!doubleList}}" repeat="{{category in categories}}">
                     <menu-category category="{{category}}" on-menuitem-selected="{{menuitemSelected}}"></menu-category>
+                </template>
+                <template if="{{doubleList}}" repeat="{{category in categories}}">
+                    <div style="position: absolute; top: 0; right: 0; width: 150px; height: 100%; overflow-x: hidden; overflow-y: auto;">
+                        <template repeat="{{category in categories}}">
+                            <menu-category-double-list category="{{category}}" selected?="{{selectedCategory.id === category.id}}" on-selected="{{categorySelected}}"></menu-category-double-list>
+                        </template>
+                    </div>
+                    <div style="position: absolute; top: 0; left: 0; width: 200px; height: 100%; overflow-x: hidden; overflow-y: auto;">
+                        <template repeat="{{item in menuitems}}">
+                            <menu-item item="{{item}}" on-selected="{{menuitemSelected}}"></menu-item>
+                        </template>
+                    </div>
                 </template>
             </div>
         </div>
@@ -71,11 +90,16 @@
         Polymer('menu-category-list', {
             categories: null,
             isHidden: false,
+            doubleList: true,
+            selectedCategory: null,
             ready: function () {
                 this.categoriesSync = new SyncDbList('menu.categories', this, 'categories');
             },
             toggle: function () {
                 this.isHidden = !this.isHidden;
+            },
+            toggleDoubleList: function () {
+                this.doubleList = !this.doubleList;
             },
             showMenu: function () {
                 this.isHidden = false;
@@ -83,9 +107,18 @@
             hideMenu: function () {
                 this.isHidden = true;
             },
+            categorySelected: function(e, category) {
+                this.selectedCategory = category;
+            },
             menuitemSelected: function (e, menuitem) {
                 if(!this.isHidden)
                     this.fire('core-signal', { name: 'menuitem-selected', data:  menuitem});
+            },
+            selectedCategoryChanged: function (oldValue, newValue) {
+                console.log('changed');
+                if(newValue) {
+                    this.menuitems = SyncDbList.prototype.enumerateObj(newValue.items);
+                }
             }
         });
     </script>
@@ -139,7 +172,6 @@
     </script>
 </polymer-element>
 
-
 <polymer-element name="menu-item" attributes="categoryId item">
     <template>
         <style>
@@ -178,3 +210,81 @@
         });
     </script>
 </polymer-element>
+
+
+
+
+
+<polymer-element name="menu-category-double-list" attributes="category">
+    <template>
+        <style>
+            :host {
+                margin: 0px;
+                padding: 10px 0 10px 0;
+                position: relative;
+                text-align: center;
+                color: rgba(0, 0, 0, 0.87);
+                background-color: red;
+                z-index: 22;
+                border-top: 1px solid rgba(255, 255, 255, 0.25);
+                border-bottom: 2px solid rgba(0, 0, 0, 0.6);
+                border-left: 1px solid black;
+            }
+
+            :host[selected] {
+                background-color: #ffffff;
+            }
+        </style>
+        <div id="container" on-click="{{fireCategorySelected}}">
+            {{category.name}}
+        </div>
+    </template>
+    </template>
+    <script>
+        Polymer('menu-category-double-list', {
+            category: null,
+            fireCategorySelected: function () {
+                this.fire('selected', this.category);
+            }
+        });
+    </script>
+</polymer-element>
+
+<!--<polymer-element name="menu-item-double-list" attributes="categoryId item">-->
+<!--<template>-->
+<!--<style>-->
+<!--#container {-->
+<!--margin: 0px;-->
+<!--padding: 5px 20px 5px 20px;-->
+<!--position: relative;-->
+<!--color: rgba(0, 0, 0, 0.87);-->
+<!--background-color: #ffffff;-->
+<!--overflow: hidden;-->
+<!--z-index: 23;-->
+<!--}-->
+<!--paper-ripple {-->
+<!--position: absolute;-->
+<!--color: #259b24;-->
+<!--top: 0;-->
+<!--left: 0;-->
+<!--bottom: 0;-->
+<!--right: 0;-->
+<!--}-->
+<!--</style>-->
+<!--<div id="container" on-click="{{select}}">-->
+<!--<paper-ripple></paper-ripple>-->
+<!--<span style="float: right">{{item.price | currency}}</span>-->
+<!--<span>{{item.name}}</span>-->
+<!--</div>-->
+<!--</template>-->
+<!--</template>-->
+<!--<script>-->
+<!--Polymer('menu-item-double-list', {-->
+<!--item: null,-->
+<!--select: function () {-->
+<!--this.fire('selected', this.item);-->
+<!--},-->
+<!--currency: posGlobals.formatters.currency-->
+<!--});-->
+<!--</script>-->
+<!--</polymer-element>-->
