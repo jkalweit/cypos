@@ -4,16 +4,6 @@
 
 var port = process.env.PORT || 1337;
 
-//var printer = require('printer');
-//printer.printDirect({data:"print from Node.JS"
-//    , printer:"PrimoPDF"
-//    , type: "TEXT"
-//    , success:function(){
-//        console.log("ok");
-//    }
-//    , error:function(err){console.log(err);}
-//});
-
 
 var fs = require('fs');
 var http = require('http');
@@ -166,6 +156,7 @@ loadDb();
 
 
 
+
 var io = require('socket.io')(server);
 
 io.on('connection', function (socket) {
@@ -216,6 +207,17 @@ io.on('connection', function (socket) {
 
 
     /***** App Specific Code *******/
+
+
+//    socket.on('print', function (id, text, requestId) {
+//
+//        printer.printDirect({data: text, printer: "Brother MFC-8680DN Printer", type: "TEXT", success: function () {
+//            console.log('printing: ', text);
+//        }, error: function (err) {
+//            console.log('Error while printing: ', err);
+//        }
+//        });
+//    });
 
 });
 

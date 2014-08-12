@@ -53,7 +53,11 @@
             }
 
             .off {
-                color: rgba(255,255,255,0.37);
+                color: rgba(255, 255, 255, 0.37);
+            }
+            
+            .items-list.hidden {
+                visibility: hidden;
             }
 
         </style>
@@ -64,24 +68,27 @@
             <div id="header">
                 <paper-shadow z="1"></paper-shadow>
                 <paper-icon-button icon="menu" style="float: left" on-click="{{toggle}}"></paper-icon-button>
-                <paper-icon-button icon="check" style="float: right" on-click="{{toggleDoubleList}}" class="{{ { off: !doubleList } | tokenList }}"></paper-icon-button>
+                <paper-icon-button icon="view-list" style="float: right" on-click="{{toggleDoubleList}}"
+                                   class="{{ { off: !doubleList } | tokenList }}"></paper-icon-button>
                 <span style="font-weight: bold; font-size: 20px;">Menu Items</span>
             </div>
             <div id="scroll-content">
                 <template if="{{!doubleList}}" repeat="{{category in categories}}">
                     <menu-category category="{{category}}" on-menuitem-selected="{{menuitemSelected}}"></menu-category>
                 </template>
-                <template if="{{doubleList}}" repeat="{{category in categories}}">
+                <template if="{{doubleList}}">
                     <div style="position: absolute; top: 0; right: 0; width: 150px; height: 100%; overflow-x: hidden; overflow-y: auto;">
                         <template repeat="{{category in categories}}">
                             <menu-category-double-list category="{{category}}" selected?="{{selectedCategory.id === category.id}}" on-selected="{{categorySelected}}"></menu-category-double-list>
                         </template>
                     </div>
-                    <div style="position: absolute; top: 0; left: 0; width: 210px; height: 100%; overflow-x: hidden; overflow-y: auto; background-color: #ffffff">
-                        <template repeat="{{item in menuitems}}">
-                            <menu-item item="{{item}}" on-selected="{{menuitemSelected}}"></menu-item>
-                        </template>
-                    </div>
+                    <template repeat="{{category in categories}}">
+                        <div class="items-list {{ { hidden: selectedCategory.id !== category.id } | tokenList }}" style="position: absolute; top: 0; left: 0; width: 210px; height: 100%; overflow-x: hidden; overflow-y: auto; background-color: #ffffff">
+                            <template repeat="{{item in category.items | enumerateObj }}">
+                                <menu-item item="{{item}}" on-selected="{{menuitemSelected}}"></menu-item>
+                            </template>
+                        </div>
+                    </template>
                 </template>
             </div>
         </div>
@@ -90,7 +97,7 @@
         Polymer('menu-category-list', {
             categories: null,
             isHidden: false,
-            doubleList: true,
+            doubleList: false,
             selectedCategory: null,
             ready: function () {
                 this.categoriesSync = new SyncDbList('menu.categories', this, 'categories');
@@ -107,20 +114,14 @@
             hideMenu: function () {
                 this.isHidden = true;
             },
-            categorySelected: function(e, category) {
+            categorySelected: function (e, category) {
                 this.selectedCategory = category;
             },
             menuitemSelected: function (e, menuitem) {
-                if(!this.isHidden)
-                    this.fire('core-signal', { name: 'menuitem-selected', data:  menuitem});
+                if (!this.isHidden)
+                    this.fire('core-signal', { name: 'menuitem-selected', data: menuitem});
             },
-            selectedCategoryChanged: function (oldValue, newValue) {
-                console.log('changed');
-                if(newValue) {
-                    this.menuitems = SyncDbList.prototype.enumerateObj(newValue.items);
-                }
-                console.log('updated');
-            }
+            enumerateObj: SyncDbList.prototype.enumerateObj
         });
     </script>
 </polymer-element>
@@ -153,7 +154,7 @@
     <script>
         Polymer('menu-category', {
             category: null,
-            ready: function() {
+            ready: function () {
 //                this.categoriesSync = new SyncDbPath('menu.categories', this, 'categories', true);
             },
             menuitemSelected: function (e, menuitem) {
@@ -161,9 +162,9 @@
             },
             enumerateObj: function (obj) {
                 var result = [];
-                if(obj) {
+                if (obj) {
                     Object.keys(obj).forEach(function (key) {
-                        if(key !== 'currId')
+                        if (key !== 'currId')
                             result.push(obj[key]);
                     });
                 }
@@ -185,6 +186,7 @@
                 overflow: hidden;
                 z-index: 23;
             }
+
             paper-ripple {
                 position: absolute;
                 color: #259b24;
@@ -211,9 +213,6 @@
         });
     </script>
 </polymer-element>
-
-
-
 
 
 <polymer-element name="menu-category-double-list" attributes="category" on-click="{{fireCategorySelected}}">

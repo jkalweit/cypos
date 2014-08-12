@@ -395,7 +395,8 @@
                     <paper-item icon="delete" label="DELETE CUSTOMER" style="color: #FF0000" on-click="{{delete}}"></paper-item>
                 </paper-menu-button>
                 <paper-icon-button icon="menu" style="float: right; z-index: 34" on-click="{{toggle}}"></paper-icon-button>
-                <core-input id="nameInput" value="{{customer.name | uppercase}}" on-focus="{{selectAllInputText}}" style="position: absolute; top: 0; left: 75px; width: 200px;"></core-input>
+                <paper-icon-button icon="print" style="float: right; z-index: 34" on-click="{{print}}"></paper-icon-button>
+                <core-input id="nameInput" value="{{customer.name | uppercase}}" on-focus="{{selectAllInputText}}" style="position: absolute; top: 0; left: 40px; width: 200px;"></core-input>
             </div>
 
             <div id="scroll-content" class="{{ {paid: customer.paid} | tokenList }}">
@@ -531,6 +532,9 @@
 
                 if(this.orderItemsSync)
                     this.orderItemsSync.addItem(item, this.updateTotals.bind(this));
+            },
+            print: function () {
+                syncDb.socket.emit('print', syncDb.syncId, 'hello from client!', syncDb.makeGuid());
             },
             deleteItem: function(e, detail) {
                 this.orderItemsSync.deleteItem(detail, this.updateTotals.bind(this));
