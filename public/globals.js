@@ -1,4 +1,10 @@
 function Globals() {
+
+    function toTitleCase(str) {
+        if(str)
+            return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+    }
+
     this.formatters = {
         currency: {
             toDOM: function (value) {
@@ -20,10 +26,20 @@ function Globals() {
                     return value.toUpperCase();
             }
         },
+        titlecase: {
+            toDOM: function (value) {
+                return toTitleCase(value);
+            },
+            toModel: function (value) {
+                return toTitleCase(value);
+            }
+        },
         formatDate: function (value) {
+            //console.log('formatDate', value);
             return value ? moment(value).format('h:mma') : '';
         },
         formatDuration: function (value) {
+            //console.log('formatDuration', value);
             return value ? moment.utc(value).format('HH:mm') : '';
         }
     };

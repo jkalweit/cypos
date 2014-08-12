@@ -109,7 +109,13 @@
         <template if="{{hasOpenOrderItems}}">
             <div id="container">
                 <paper-shadow z="1"></paper-shadow>
-                <h2>{{customer.name}}</h2>
+                <span style="position: absolute; right: 20px; top: 15px;">{{customer.servername }}</span>
+                <h2 style="width: 250px;">
+                    <template if="{{customer.togo}}">
+                        <core-icon icon="reply" style="position: relative; top: -5px"></core-icon>
+                    </template>
+                    {{customer.name}}
+                </h2>
 
                 <template repeat="{{item in orderItems}}">
                     <template if="{{item.menuitem.type === type}}">
