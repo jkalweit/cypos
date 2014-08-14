@@ -205,11 +205,11 @@
                     <tbody>
                     <tr>
                         <td>Opened:</td>
-                        <td colspan="3">{{rec.openeddate | formatDate('dddd MMM Do, YYYY') }}</td>
+                        <td colspan="3">{{rec.openeddate | formatDate('dddd MMM Do, YYYY h:mma') }}</td>
                     </tr>
                     <tr>
                         <td>Closed:</td>
-                        <td colspan="3">{{rec.closeddate | formatDate('dddd MMM Do, YYYY') }}</td>
+                        <td colspan="3">{{rec.closeddate | formatDate('dddd MMM Do, YYYY h:mma') }}</td>
                     </tr>
                     <tr>
                         <td>Note:</td>
@@ -272,6 +272,7 @@
                     </tbody>
                 </table>
                 <button on-click="{{calculateSales}}">Calculate Sales</button>
+                <button on-click="{{closeRec}}">Close Rec</button>
             </div>
         </div>
     </template>
@@ -356,17 +357,20 @@
 
                 this.calculateTotals();
             },
+            closeRec: function () {
+                syncDb.socket.emit('closereconciliation', syncDb.syncId, syncDb.makeGuid());
+            },
             calculateTotals: function () {
                 this.rec.drawer.beginning = posGlobals.helpers.round(this.rec.drawer.beginning);
                 this.rec.drawer.ending = posGlobals.helpers.round(this.rec.drawer.ending);
                 this.rec.drawer.payouts = posGlobals.helpers.round(this.rec.drawer.payouts);
-                this.rec.take.cash = this.rec.drawer.ending - this.rec.drawer.beginning + this.rec.drawer.payouts;
+                this.rec.take.cash = posGlobals.helpers.round(this.rec.drawer.ending - this.rec.drawer.beginning + this.rec.drawer.payouts);
                 this.rec.take.checks = posGlobals.helpers.round(this.rec.take.checks);
                 this.rec.take.creditcards = posGlobals.helpers.round(this.rec.take.creditcards);
 
-                this.rec.take.total = this.rec.take.cash + this.rec.take.checks + this.rec.take.creditcards;
+                this.rec.take.total = posGlobals.helpers.round(this.rec.take.cash + this.rec.take.checks + this.rec.take.creditcards);
 
-                this.rec.discrepancy = this.rec.take.total - this.rec.sales.total;
+                this.rec.discrepancy = posGlobals.helpers.round(this.rec.take.total - this.rec.sales.total);
             },
             currency: posGlobals.formatters.currency,
             formatDate: posGlobals.formatters.formatDate,

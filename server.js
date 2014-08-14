@@ -209,6 +209,37 @@ io.on('connection', function (socket) {
 
     /***** App Specific Code *******/
 
+    socket.on('closereconciliation', function (id, requestId) {
+
+        console.log('closing rec');
+
+        if(!db.reconciliations.current) {
+            console.log('ERROR: no rec');
+            return;
+        }
+
+        var current = db.reconciliations.current;
+
+        current.closeddate = new Date();
+
+        if(!db.reconciliations.history) {
+            db.reconciliations.history = {
+                currId: 0
+            };
+        }
+
+        var history = db.reconciliations.history;
+
+        current.id = ++history.currId;
+        current.customers = db.customers;
+        current.menu = db.menu;
+        history[current.id] = current;
+        delete db.customers;
+        delete db.reconciliations.current;
+
+        //socket.emit('update', id, 'reconciliations.current.closeddate', current.closeddate, requestId);
+        console.log('rec closed');
+    }.bind());
 
 //    socket.on('print', function (id, text, requestId) {
 //
