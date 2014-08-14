@@ -69,8 +69,10 @@
                     <br/>
                     Food: <span style="float: right; color: greenyellow;">{{sales.totals.food | currency}}</span><br/>
                     Tax: <span style="float: right; color: greenyellow;">{{sales.totals.tax | currency}}</span><br/>
-                    Alcohol: <span style="float: right; color: greenyellow;">{{sales.totals.alcohol | currency}}</span><br/>
-                    <b>Total: <span style="float: right; color: greenyellow;">{{sales.totals.total | currency}}</span></b><br/>
+                    Alcohol: <span
+                        style="float: right; color: greenyellow;">{{sales.totals.alcohol | currency}}</span><br/>
+                    <b>Total: <span
+                            style="float: right; color: greenyellow;">{{sales.totals.total | currency}}</span></b><br/>
                     <br/>
                     Customers: <span style="float: right; color: greenyellow;">{{sales.totals.customers }}</span><br/>
                     Sales/Customer: <span style="float: right; color: greenyellow;">{{sales.totals.salespercustomer | currency}}</span><br/>
@@ -121,15 +123,16 @@
                     totals.visittime += customer.visitduration ? customer.visitduration : moment() - moment(customer.openeddate);
                 });
 
-                for(var prop in totals)
+                for (var prop in totals)
                     this.sales.totals[prop] = totals[prop];
 
                 this.sales.totals.salespercustomer = Number((this.sales.totals.total / this.sales.totals.customers).toFixed(2));
-                this.sales.totals.salesperhour = Number((this.sales.totals.total / moment.duration(this.sales.totals.visittime).asHours()).toFixed(2));;
+                this.sales.totals.salesperhour = Number((this.sales.totals.total / moment.duration(this.sales.totals.visittime).asHours()).toFixed(2));
+                ;
             },
             currency: posGlobals.formatters.currency,
-            formatDurationAsHours: function(value) {
-                if(value)
+            formatDurationAsHours: function (value) {
+                if (value)
                     return moment.duration(this.sales.totals.visittime).asHours().toFixed(1);
                 else
                     return '';
@@ -137,3 +140,238 @@
         });
     </script>
 </polymer-element>
+
+
+<polymer-element name="rec-current">
+    <template>
+        <style>
+            #container {
+                margin: 0;
+                padding: 0;
+                position: absolute;
+                top: 0;
+                left: 0px;
+                height: 100%;
+                width: 100%;
+                background-color: #ffffff;
+                z-index: 0;
+            }
+
+            #header {
+                width: 100%;
+                height: 40px;
+                line-height: 40px;
+                position: absolute;
+                top: 0;
+                left: 0;
+                text-align: center;
+                background-color: #311b92;
+                color: rgba(255, 255, 255, 0.87);
+                z-index: 1;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+            }
+
+            #scroll-content {
+                margin: 0;
+                padding: 0;
+                position: absolute;
+                top: 40px;
+                left: 0;
+                bottom: 0;
+                width: 100%;
+                /*background-color: #ede7f6;*/
+                z-index: 0;
+            }
+
+            core-input {
+                border: 1px dotted #ccc;
+            }
+
+            core-input.currency {
+                width: 4em;
+            }
+
+            core-input.currency /deep/ input {
+                text-align: right;
+            }
+
+        </style>
+        <div id="container">
+            <div id="header">
+                <span style="font-weight: bold; font-size: 20px;">Reconciliation</span> <br/>
+            </div>
+            <div id="scroll-content">
+                <table>
+                    <tbody>
+                    <tr>
+                        <td>Opened:</td>
+                        <td colspan="3">{{rec.openeddate | formatDate('dddd MMM Do, YYYY') }}</td>
+                    </tr>
+                    <tr>
+                        <td>Closed:</td>
+                        <td colspan="3">{{rec.closeddate | formatDate('dddd MMM Do, YYYY') }}</td>
+                    </tr>
+                    <tr>
+                        <td>Note:</td>
+                        <td colspan="3"><core-input value="{{rec.note}}" style="width: 25em;"></core-input></td>
+                    </tr>
+                    <tr>
+                        <td>Beginning Drawer:</td>
+                        <td><core-input value="{{rec.drawer.beginning}}" class="currency"></core-input></td>
+                    </tr>
+                    <tr>
+                        <td>Ending Drawer:</td>
+                        <td><core-input value="{{rec.drawer.ending}}" class="currency"></core-input></td>
+                    </tr>
+                    <tr>
+                        <td>Drawer Payouts:</td>
+                        <td><core-input value="{{rec.drawer.payouts}}" class="currency"></core-input></td>
+                    </tr>
+                    <tr>
+                        <td>Cash Take:</td>
+                        <td>{{rec.take.cash | currency}}</td>
+                    </tr>
+                    <tr>
+                        <td>Checks:</td>
+                        <td><core-input value="{{rec.take.checks}}" class="currency"></core-input></td>
+                    </tr>
+                    <tr>
+                        <td>Credit Cards:</td>
+                        <td><core-input value="{{rec.take.creditcards}}" class="currency"></core-input></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td>{{rec.sales.food | currency}}</td>
+                        <td>Food</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td>{{rec.sales.tax | currency}}</td>
+                        <td>Tax</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td>{{rec.sales.alcohol | currency}}</td>
+                        <td>Alcohol</td>
+                    </tr>
+                    <tr>
+                        <td>Total Take: </td>
+                        <td>{{rec.take.total | currency}}</td>
+                        <td>{{rec.sales.total | currency}}</td>
+                        <td>Total Sales</td>
+                    </tr>
+                    <tr>
+                        <td>Discrepancy: </td>
+                        <td><template if="{{rec.discrepancy < 0}}"><span style="color: darkred">{{rec.discrepancy | currency}}</span></template></td>
+                        <td><template if="{{rec.discrepancy >= 0}}">{{rec.discrepancy | currency}}</template></td>
+                        <td></td>
+                    </tr>
+                    </tbody>
+                </table>
+                <button on-click="{{calculateSales}}">Calculate Sales</button>
+            </div>
+        </div>
+    </template>
+    <script>
+        Polymer('rec-current', {
+            observe: {
+                'rec.drawer.beginning': 'calculateTotals',
+                'rec.drawer.ending': 'calculateTotals',
+                'rec.drawer.payouts': 'calculateTotals',
+                'rec.take.checks': 'calculateTotals',
+                'rec.take.creditcards': 'calculateTotals'
+            },
+            ready: function () {
+                //this.recSync = new SyncDbPath('rec.')
+                syncDb.getDb(function (db) {
+                    this.db = db;
+                    if(!this.db.reconciliations)
+                        this.db.reconciliations = {};
+                    if(!this.db.reconciliations.current) {
+                        this.db.reconciliations.current = {
+                            openeddate: new Date(),
+                            closeddate: null,
+                            note: '',
+                            drawer: {
+                                beginning: 0,
+                                ending: 0,
+                                payouts: 0
+                            },
+                            sales: {
+                                food: 0,
+                                tax: 0,
+                                alcohol: 0,
+                                total: 0,
+                                customers: 0,
+                                visittime: 0,
+                                salespercustomer: 0,
+                                salesperhour: 0
+                            },
+                            take: {
+                                cash: 0,
+                                checks: 0,
+                                creditcards: 0,
+                                total: 0
+                            },
+                            discrepancy: 0
+                        };
+                        syncDb.update('reconciliations.current', this.db.reconciliations.current);
+                    }
+                    this.rec = this.db.reconciliations.current;
+                    this.recSync = new SyncDbPath('reconciliations.current', '');
+                    this.drawerSync = new SyncDbPath('reconciliations.current.drawer', '');
+                    this.takeSync = new SyncDbPath('reconciliations.current.take', '');
+                    this.salesSync = new SyncDbPath('reconciliations.current.sales', '');
+                }.bind(this));
+            },
+            calculateSales: function () {
+                var customers = SyncDbList.prototype.enumerateObj(this.db.customers);
+                var totals = {
+                    food: 0,
+                    tax: 0,
+                    alcohol: 0,
+                    total: 0,
+                    customers: 0,
+                    visittime: 0,
+                    salespercustomer: 0,
+                    salesperhour: 0
+                };
+                customers.forEach(function (customer) {
+                    totals.food += customer.foodtotal;
+                    totals.tax += customer.tax;
+                    totals.alcohol += customer.alcoholtotal;
+                    totals.total += customer.total;
+                    totals.customers++;
+                    totals.visittime += customer.visitduration ? customer.visitduration : moment() - moment(customer.openeddate);
+                });
+
+                for (var prop in totals)
+                    this.rec.sales[prop] = totals[prop];
+
+                this.rec.sales.percustomer = Number((totals.total / totals.customers).toFixed(2));
+                this.rec.sales.perhour = Number((totals.total / moment.duration(totals.visittime).asHours()).toFixed(2));
+
+                this.calculateTotals();
+            },
+            calculateTotals: function () {
+                this.rec.drawer.beginning = posGlobals.helpers.round(this.rec.drawer.beginning);
+                this.rec.drawer.ending = posGlobals.helpers.round(this.rec.drawer.ending);
+                this.rec.drawer.payouts = posGlobals.helpers.round(this.rec.drawer.payouts);
+                this.rec.take.cash = this.rec.drawer.ending - this.rec.drawer.beginning + this.rec.drawer.payouts;
+                this.rec.take.checks = posGlobals.helpers.round(this.rec.take.checks);
+                this.rec.take.creditcards = posGlobals.helpers.round(this.rec.take.creditcards);
+
+                this.rec.take.total = this.rec.take.cash + this.rec.take.checks + this.rec.take.creditcards;
+
+                this.rec.discrepancy = this.rec.take.total - this.rec.sales.total;
+            },
+            currency: posGlobals.formatters.currency,
+            formatDate: posGlobals.formatters.formatDate,
+            formatDuration: posGlobals.formatters.formatDuration
+        });
+    </script>
+</polymer-element>
+

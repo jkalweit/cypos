@@ -278,5 +278,5 @@ SyncDb.prototype.getDb = function (callback) {
         this.getDbCallbacks.push(callback);
 };
 
-
+var syncDb = new SyncDb();
 

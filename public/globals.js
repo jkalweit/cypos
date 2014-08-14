@@ -5,6 +5,13 @@ function Globals() {
             return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
     }
 
+    this.helpers = {
+        round: function (value, digits) {
+            digits = digits || 2;
+            return Number(Number(value).toFixed(digits));
+        }
+    }
+
     this.formatters = {
         currency: {
             toDOM: function (value) {
@@ -34,9 +41,10 @@ function Globals() {
                 return toTitleCase(value);
             }
         },
-        formatDate: function (value) {
+        formatDate: function (value, format) {
+            format = format || 'h:mma';
             //console.log('formatDate', value);
-            return value ? moment(value).format('h:mma') : '';
+            return value ? moment(value).format(format) : '';
         },
         formatDuration: function (value) {
             //console.log('formatDuration', value);

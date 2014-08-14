@@ -13,6 +13,7 @@ var server = http.createServer(function (req, res) {
     if (file == '/') file = '/index.html';
     if (file == '/bar') file = '/bar.html';
     if (file == '/kitchen') file = '/kitchen.html';
+    if (file == '/rec') file = '/rec.html'
 
     fs.readFile('public' + file, function (err, data) {
 
