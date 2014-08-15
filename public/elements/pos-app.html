@@ -19,16 +19,28 @@
                 background-color: #777777;
             }
         </style>
-        <div id="container">
-            <customer-summary-list></customer-summary-list>
-            <customer-edit></customer-edit>
-            <sales-by-item></sales-by-item>
-            <menu-category-list></menu-category-list>
-        </div>
+        <template if="{{status.recIsOpen}}">
+            <div id="container">
+                <customer-summary-list></customer-summary-list>
+                <customer-edit></customer-edit>
+                <sales-by-item></sales-by-item>
+                <menu-category-list></menu-category-list>
+            </div>
+        </template>
+        <template if="{{!status.recIsOpen}}">
+            <h1>No Open Rec</h1>
+        </template>
     </template>
     <script>
         Polymer('pos-app', {
+            ready: function() {
+                syncDb.getDb(function(db) {
+                    this.status = db.status;
+                    console.log('status', this.status);
+                }.bind(this));
+            },
             domReady: function (){
+
 //                var hammertime = new Hammer(this.$.container);
 //                hammertime.on('swipe', function(ev) {
 //                    if(ev.direction === 2){

@@ -198,10 +198,13 @@
     <template>
         <style>
             #container {
-                margin: 10px;
-                padding: 20px;
+                position: relative;
+                margin: 0px 0px;
+                padding: 20px 0px;
                 color: rgba(0, 0, 0, 0.87);
                 background-color: #ffffff;
+                border-top: 1px solid rgba(0, 0, 0, 0.2);
+                border-bottom: 1px solid rgba(0, 0, 0, 0.6);
                 z-index: 12;
                 -webkit-user-select: none;
                 user-select: none;
@@ -221,6 +224,7 @@
             #container h2 {
                 margin-top: 10px;
                 margin-bottom: 20px;
+                margin-left: 20px;
             }
 
             #container.paid h2 {
@@ -236,7 +240,6 @@
         </style>
         <core-signals on-core-signal-customer-selected="{{selected}}"></core-signals>
         <div id="container" on-click="{{select}}" class="{{ {selected: isSelected, paid: customer.paid } | tokenList }}">
-            <paper-shadow z="1"></paper-shadow>
             <template if="{{customer.paid}}">
                 <div style="float: right; margin-top: 13px">
                     <span style="position: absolute; right: 20px; top: 5px;">{{customer.servername }}</span>
@@ -260,7 +263,7 @@
                     <orderitem-summary customerId="{{customer.id}}" item="{{item}}"></orderitem-summary>
                 </template>
                 <br/>
-                <span style="font-size: 20px">Total:  <span style="float: right">{{customer.total | currency}}</span></span>
+                <span style="margin: 0px 20px; font-size: 20px">Total:  <span style="float: right; margin-right: 20px;">{{customer.total | currency}}</span></span>
             </template>
         </div>
     </template>
@@ -300,9 +303,8 @@
     <template>
         <style>
             #container {
-                margin-bottom: 5px;
-                padding: 3px;
-                border-radius: 3px;
+                margin-bottom: 1px;
+                padding: 5px 20px 1px 20px;
                 color: inherit;
                 z-index: 12;
                 -webkit-user-select: none;

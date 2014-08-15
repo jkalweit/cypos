@@ -269,6 +269,18 @@
                         <td><template if="{{rec.discrepancy >= 0}}">{{rec.discrepancy | currency}}</template></td>
                         <td></td>
                     </tr>
+                    <tr>
+                        <td>Customers:</td>
+                        <td>{{rec.sales.customers}}</td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>Customers Unpaid:</td>
+                        <td>{{rec.sales.customersopen}}</td>
+                        <td></td>
+                        <td></td>
+                    </tr>
                     </tbody>
                 </table>
                 <button on-click="{{calculateSales}}">Calculate Sales</button>
@@ -336,9 +348,10 @@
                     alcohol: 0,
                     total: 0,
                     customers: 0,
+                    customersopen: 0,
                     visittime: 0,
-                    salespercustomer: 0,
-                    salesperhour: 0
+                    percustomer: 0,
+                    perhour: 0
                 };
                 customers.forEach(function (customer) {
                     totals.food += customer.foodtotal;
@@ -346,6 +359,8 @@
                     totals.alcohol += customer.alcoholtotal;
                     totals.total += customer.total;
                     totals.customers++;
+                    if(!customer.paid)
+                        totals.customersopen++;
                     totals.visittime += customer.visitduration ? customer.visitduration : moment() - moment(customer.openeddate);
                 });
 
@@ -358,7 +373,18 @@
                 this.calculateTotals();
             },
             closeRec: function () {
-                syncDb.socket.emit('closereconciliation', syncDb.syncId, syncDb.makeGuid());
+                this.calculateSales();
+                if(this.rec.sales.customersopen > 0) {
+                    alert('Cannot close rec: unpaid customers.');
+                    return;
+                }
+                if(this.rec.drawer.beginning <= 0) {
+                    alert('Cannot close rec: drawer is not counted.');
+                    return;
+                }
+                console.log('closing rec');
+                //var customers = SyncDbList.prototype.enumerateObj(this.db.customers);
+                //syncDb.socket.emit('closereconciliation', syncDb.syncId, syncDb.makeGuid());
             },
             calculateTotals: function () {
                 this.rec.drawer.beginning = posGlobals.helpers.round(this.rec.drawer.beginning);

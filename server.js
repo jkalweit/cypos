@@ -237,6 +237,8 @@ io.on('connection', function (socket) {
         delete db.customers;
         delete db.reconciliations.current;
 
+        db.status.recIsOpen = false;
+        socket.emit('update', id, 'status.recIsOpen', db.status.recIsOpen, requestId);
         //socket.emit('update', id, 'reconciliations.current.closeddate', current.closeddate, requestId);
         console.log('rec closed');
     }.bind());
