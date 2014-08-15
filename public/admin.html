@@ -48,7 +48,7 @@
 
     function copyMenuFromFirebase() {
 
-        syncdb.delete('menu', function () {
+        syncDb.delete('menu', function () {
 
 
 
@@ -76,7 +76,7 @@
                         };
                         category.items[newitem.id] = newitem;
                     }
-                    syncdb.addItem('menu.categories', category);
+                    syncDb.addItem('menu.categories', category);
                 }
             }.bind(this));
         }.bind(this));
