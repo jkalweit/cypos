@@ -223,3 +223,100 @@
         });
     </script>
 </polymer-element>
+
+
+
+
+<polymer-element name="customer-print" attributes="customer type">
+    <template>
+        <style>
+            #container {
+                margin: 0px;
+                padding: 0px;
+                width: 225px;
+                position: relative;
+                display: inline-block;
+                vertical-align: top;
+                color: rgba(0, 0, 0, 0.87);
+                background-color: #ffffff;
+                z-index: 12;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+
+            #container.selected {
+                background-color: #d0f8ce;
+            }
+
+            #container h2 {
+                margin-top: 10px;
+                margin-bottom: 20px;
+                margin-left: 20px;
+            }
+
+        </style>
+        <div id="container">
+            <p style="text-align: center; margin: 0; padding: 0;">The Coal Yard</p>
+            <p style="text-align: center; margin: 0; padding: 0;">Restaurant & Lounge</p>
+            <p style="text-align: center; margin: 0; padding: 0;">105 Garner St, York SC</p>
+            <p style="text-align: center; margin: 0; padding: 0;">803-684-9653</p>
+            <br/>
+
+                <!--<span style="position: absolute; right: 20px; top: 15px;">{{customer.servername }}</span>-->
+            <span style="width: 225px;">
+            <template if="{{customer.togo}}">
+            <core-icon icon="reply" style="position: relative; top: -5px"></core-icon>
+            </template>
+            {{customer.name}}
+            </span>
+            <br/>
+            <br/>
+            <template repeat="{{item in orderItems}}">
+            <!--<template if="{{item.menuitem.type === type}}">-->
+                <span style="float: right">{{item.price | currency}}</span>
+                {{item.menuitem.name}} <br/>
+            <!--<order-orderitem customerid="{{customer.id}}" item="{{item}}"></order-orderitem>-->
+            <!--</template>-->
+            </template>
+            <hr/>
+            Food: <span style="float: right">{{customer.foodtotal | currency}}</span><br/>
+            Tax: <span style="float: right">{{customer.tax | currency}}</span><br/>
+            Bar: <span style="float: right">{{customer.alcoholtotal | currency}}</span><br/>
+            <span style="font-weight: bold; font-size: 20px;">Total: <span style="float: right">{{customer.total | currency}}</span></span><br/>
+            <br/>
+            <p style="text-align: center; margin: 0; padding: 0;">Thank You!</p>
+            <br />
+            <hr />
+            <br/>
+            <br/>
+            <br/>
+        </div>
+    </template>
+    <script>
+        Polymer('customer-print', {
+            customer: null,
+            ready: function() {
+                var params = posGlobals.helpers.getJsonFromUrl();
+                console.log('params: ', params);
+                if(params.id) {
+                    this.customer = syncDb.db.customers[params.id];
+                    setTimeout(function () {
+                        window.print();
+                        window.close();
+                    }, 100);
+                }
+            },
+            customerChanged: function (oldValue, newValue) {
+                if(this.orderItemsSync) {
+                    this.orderItemsSync.unobserve();
+                    this.orderItemsSync = null; // release reference for garbage collection
+                }
+                if(newValue){
+                    this.orderItemsSync = new SyncDbList('customers.' + newValue.id + '.orderitems', this, 'orderItems');
+                }
+            },
+            currency: posGlobals.formatters.currency,
+            formatDate: posGlobals.formatters.formatDate
+        });
+    </script>
+</polymer-element>

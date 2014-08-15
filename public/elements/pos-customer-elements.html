@@ -592,8 +592,46 @@
                 if(this.orderItemsSync)
                     this.orderItemsSync.addItem(item, this.updateTotals.bind(this));
             },
+            TSP700: {
+                FullCut: '\x1b\x64\x02',
+                PartialCut: '\x1b\x64\x03',
+                LeftAlign: '\x1b\x1d\x61\x00',
+                RightAlign: '\x1b\x1d\x61\x02',
+                CenterAlign: '\x1b\x1d\x61\x01',
+                HorizontalTabShort: '\x1b\x1d\x61\x00\x1b\x44\x02\x05\x22\x00',
+                HorizontalLine: '------------------------------------------------\n'
+            },
+            buildheader: function () {
+                var data = this.TSP700.CenterAlign;
+                //data += "\x5B" + "If loaded.. Logo1 goes here" + "\x5D\n";
+                data += 'The Coal Yard\n';
+                data += 'Restaurant and Lounge\n';
+                data += '105 Garner St, York SC\n';
+                data += '(803) 684-9653\n';
+                return data;
+            },
             print: function () {
-                syncDb.socket.emit('print', syncDb.syncId, 'hello from client!', syncDb.makeGuid());
+                var data = this.buildheader();
+                data += '\n';
+                data += this.TSP700.LeftAlign;
+                data += this.customer.name;
+                data += '\n\n';
+                data += this.TSP700.HorizontalTabShort;
+                this.orderItems.forEach(function (item) {
+                    data += '\x09' + item.menuitem.name;
+                    data += '\x09';
+                    data += this.currency.toDOM(item.price);
+                    data += '\n';
+                }.bind(this));
+                data += this.TSP700.HorizontalLine + '\n';
+                data += '\x09Food:\x09' + this.currency.toDOM(this.customer.foodtotal) + '\n';
+                data += '\x09Tax:\x09' + this.currency.toDOM(this.customer.tax) + '\n';
+                data += '\x09Bar:\x09' + this.currency.toDOM(this.customer.alcoholtotal) + '\n';
+                data += '\x09Total:\x09' + this.currency.toDOM(this.customer.total) + '\n';
+                data += '\n\n' + this.TSP700.CenterAlign + 'Thank You!\n\n';
+                data += this.TSP700.PartialCut;
+                //window.open('print.html?id=' + this.customer.id,'_blank');
+                syncDb.socket.emit('print', syncDb.syncId, data, syncDb.makeGuid());
             },
             deleteItem: function(e, detail) {
                 this.orderItemsSync.deleteItem(detail, this.updateTotals.bind(this));

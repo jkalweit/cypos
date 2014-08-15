@@ -4,12 +4,17 @@
 
 var port = process.env.PORT || 1337;
 
+var printer = require('printer/printer.js');
 
 var fs = require('fs');
 var http = require('http');
 var server = http.createServer(function (req, res) {
 
-    var file = req.url;
+    var url = req.url;
+    if(url.indexOf('?') > -1)
+        url = url.substr(0, url.indexOf('?'));
+
+    var file = url;
     if (file == '/') file = '/index.html';
     if (file == '/bar') file = '/bar.html';
     if (file == '/kitchen') file = '/kitchen.html';
@@ -136,23 +141,11 @@ function deleteValue(path) {
 loadDb();
 
 
-//db = {
-//    customers: {
-//        currId: 3,
-//        '1': {
-//            id: 1,
-//            name: 'JUSTIN'
-//        },
-//        '2': {
-//            id: 2,
-//            name: 'BOB'
-//        },
-//        '3': {
-//            id: 3,
-//            name: 'STEVE'
-//        }
-//    }
-//};
+
+
+
+
+
 
 
 
@@ -243,15 +236,15 @@ io.on('connection', function (socket) {
         console.log('rec closed');
     }.bind());
 
-//    socket.on('print', function (id, text, requestId) {
-//
-//        printer.printDirect({data: text, printer: "Brother MFC-8680DN Printer", type: "TEXT", success: function () {
-//            console.log('printing: ', text);
-//        }, error: function (err) {
-//            console.log('Error while printing: ', err);
-//        }
-//        });
-//    });
+    socket.on('print', function (id, text, requestId) {
+
+        printer.printDirect({data: text, printer: "TSP700", type: "RAW", success: function () {
+            console.log('printing: ', text);
+        }, error: function (err) {
+            console.log('Error while printing: ', err);
+        }
+        });
+    });
 
 });
 
