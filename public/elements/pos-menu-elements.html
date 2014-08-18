@@ -97,7 +97,7 @@
         Polymer('menu-category-list', {
             categories: null,
             isHidden: false,
-            doubleList: false,
+            doubleList: true,
             selectedCategory: null,
             ready: function () {
                 this.categoriesSync = new SyncDbList('menu.categories', this, 'categories');

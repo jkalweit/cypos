@@ -111,7 +111,7 @@
     <script>
         Polymer('customer-summary-list', {
             isHidden: false,
-            showpaid: false,
+            showpaid: true,
             serverName: 'House',
             showOnlyServer: false,
             ready: function() {
@@ -440,7 +440,8 @@
                 </paper-menu-button>
                 <paper-icon-button icon="menu" style="float: right; z-index: 34" on-click="{{toggle}}"></paper-icon-button>
                 <paper-icon-button icon="print" style="float: right; z-index: 34" on-click="{{print}}"></paper-icon-button>
-                <core-input id="nameInput" value="{{customer.name | uppercase}}" on-focus="{{selectAllInputText}}" style="position: absolute; top: 0; left: 40px; width: 200px;"></core-input>
+                <paper-icon-button icon="thumb-up" style="float: right; z-index: 34" on-click="{{printkitchen}}"></paper-icon-button>
+                <core-input id="nameInput" value="{{customer.name | uppercase}}" on-focus="{{selectAllInputText}}" style="position: absolute; top: 0; left: 40px; width: 160px;"></core-input>
             </div>
 
             <div id="scroll-content" class="{{ {paid: customer.paid} | tokenList }}">
@@ -599,11 +600,15 @@
                 RightAlign: '\x1b\x1d\x61\x02',
                 CenterAlign: '\x1b\x1d\x61\x01',
                 HorizontalTabShort: '\x1b\x1d\x61\x00\x1b\x44\x02\x05\x22\x00',
+                Emphasize: '\x1b\x45',
+                EmphasizeCancel: '\x1b\x46',
+                Expansion: '\x1b\x69\x01\x01',
+                ExpansionCancel: '\x1b\x69\x00\x00',
                 HorizontalLine: '------------------------------------------------\n'
             },
             buildheader: function () {
                 var data = this.TSP700.CenterAlign;
-                //data += "\x5B" + "If loaded.. Logo1 goes here" + "\x5D\n";
+                data += this.TSP700.ExpansionCancel;
                 data += 'The Coal Yard\n';
                 data += 'Restaurant and Lounge\n';
                 data += '105 Garner St, York SC\n';
@@ -614,9 +619,11 @@
                 var data = this.buildheader();
                 data += '\n';
                 data += this.TSP700.LeftAlign;
-                data += this.customer.name;
-                data += '\n\n';
                 data += this.TSP700.HorizontalTabShort;
+                data += this.TSP700.Expansion;
+                data += '\x09' + this.customer.name;
+                data += this.TSP700.ExpansionCancel;
+                data += '\n\n';
                 this.orderItems.forEach(function (item) {
                     data += '\x09' + item.menuitem.name;
                     data += '\x09';
@@ -624,11 +631,33 @@
                     data += '\n';
                 }.bind(this));
                 data += this.TSP700.HorizontalLine + '\n';
+                data += this.TSP700.Emphasize;
                 data += '\x09Food:\x09' + this.currency.toDOM(this.customer.foodtotal) + '\n';
                 data += '\x09Tax:\x09' + this.currency.toDOM(this.customer.tax) + '\n';
                 data += '\x09Bar:\x09' + this.currency.toDOM(this.customer.alcoholtotal) + '\n';
+                data += this.TSP700.Expansion;
                 data += '\x09Total:\x09' + this.currency.toDOM(this.customer.total) + '\n';
+                data += this.TSP700.ExpansionCancel;
                 data += '\n\n' + this.TSP700.CenterAlign + 'Thank You!\n\n';
+                data += this.TSP700.PartialCut;
+                //window.open('print.html?id=' + this.customer.id,'_blank');
+                syncDb.socket.emit('print', syncDb.syncId, data, syncDb.makeGuid());
+            },
+            printkitchen: function () {
+                var data = this.TSP700.LeftAlign;
+                data += this.TSP700.HorizontalTabShort;
+                data += this.TSP700.Expansion;
+                data += '\x09' + this.customer.name;
+                //data += this.TSP700.ExpansionCancel;
+                data += '\n\n';
+                this.orderItems.forEach(function (item) {
+                    data += this.TSP700.Emphasize;
+                    data += item.menuitem.name + '\n';
+                    data += this.TSP700.EmphasizeCancel;
+                    data += item.note;
+                    data += '\n';
+                }.bind(this));
+                data += '\n\n';
                 data += this.TSP700.PartialCut;
                 //window.open('print.html?id=' + this.customer.id,'_blank');
                 syncDb.socket.emit('print', syncDb.syncId, data, syncDb.makeGuid());

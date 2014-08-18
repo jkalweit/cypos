@@ -239,7 +239,7 @@ io.on('connection', function (socket) {
     socket.on('print', function (id, text, requestId) {
 
         printer.printDirect({data: text, printer: "TSP700", type: "RAW", success: function () {
-            console.log('printing: ', text);
+            console.log('printed.');
         }, error: function (err) {
             console.log('Error while printing: ', err);
         }
