@@ -10,7 +10,7 @@
 <link rel="import" href="../bower_components/paper-shadow/paper-shadow.html">
 <link rel="import" href="../bower_components/paper-toggle-button/paper-toggle-button.html">
 
-<polymer-element name="customer-summary-list">
+<polymer-element name="customer-summary-list" attributes="printer">
     <template>
         <style>
             #container {
@@ -80,13 +80,17 @@
             <div id="header">
                 <paper-shadow z="1"></paper-shadow>
                 <paper-icon-button icon="check" style="position: absolute; left: 0px; top: 0px;" on-click="{{toggleShowpaid}}" class="{{ { off: !showpaid } | tokenList }}"></paper-icon-button>
-                <paper-icon-button icon="menu" style="position: absolute; left: 280px; top: 0px;" on-click="{{toggle}}"></paper-icon-button>
+                <!--<paper-icon-button icon="menu" style="position: absolute; left: 280px; top: 0px;" on-click="{{toggle}}"></paper-icon-button>-->
                 <span style="font-weight: bold; font-size: 20px;">Customers</span> <br/>
                 <paper-icon-button icon="add" style="position: absolute; left: 280px; top: 38px;" on-click="{{addCustomer}}"></paper-icon-button>
                 <input id="nameInput" value="{{customerName | uppercase}}" on-keypress="{{keypressHandler}}" style="position: absolute; left: 2px; top: 40px; height: 38px; width: 280px" />
 
                 <paper-icon-button icon="check" style="position: absolute; right: 0px; top: 80px;" on-click="{{toggleShowOnlyServer}}" class="{{ { off: !showOnlyServer } | tokenList }}"></paper-icon-button>
-                <select value="{{serverName}}" style="position: absolute; left: 2px; top: 80px; height: 38px; width: 280px; font-size: 16px;">
+                <select value="{{printer}}" style="position: absolute; left: 2px; top: 80px; height: 38px; width: 140px; font-size: 16px;">
+                    <option value="TSP700">Bar Printer</option>
+                    <option value="TSP143LAN">Wait Printer</option>
+                </select>
+                <select value="{{serverName}}" style="position: absolute; left: 144px; top: 80px; height: 38px; width: 138px; font-size: 16px;">
                     <option>House</option>
                     <option>Aerin</option>
                     <option>Keely</option>
@@ -94,6 +98,7 @@
                     <option>Baldwin</option>
                     <option>Stassie</option>
                     <option>Will</option>
+                    <option>Thatcher</option>
                     <option>Server1</option>
                     <option>Server2</option>
                 </select>
@@ -338,7 +343,7 @@
 
 
 
-<polymer-element name="customer-edit" attributes="customer">
+<polymer-element name="customer-edit" attributes="customer printer">
     <template>
         <style>
             #container {
@@ -476,6 +481,7 @@
                         <option>Baldwin</option>
                         <option>Stassie</option>
                         <option>Will</option>
+                        <option>Thatcher</option>
                         <option>Server1</option>
                         <option>Server2</option>
                     </select>
@@ -641,7 +647,7 @@
                 data += '\n\n' + this.TSP700.CenterAlign + 'Thank You!\n\n';
                 data += this.TSP700.PartialCut;
                 //window.open('print.html?id=' + this.customer.id,'_blank');
-                syncDb.socket.emit('print', syncDb.syncId, data, syncDb.makeGuid());
+                syncDb.socket.emit('print', syncDb.syncId, { printer: this.printer, data: data }, syncDb.makeGuid());
             },
             printkitchen: function () {
                 var data = this.TSP700.LeftAlign;
@@ -660,7 +666,7 @@
                 data += '\n\n';
                 data += this.TSP700.PartialCut;
                 //window.open('print.html?id=' + this.customer.id,'_blank');
-                syncDb.socket.emit('print', syncDb.syncId, data, syncDb.makeGuid());
+                syncDb.socket.emit('print', syncDb.syncId, { printer: this.printer, data: data }, syncDb.makeGuid());
             },
             deleteItem: function(e, detail) {
                 this.orderItemsSync.deleteItem(detail, this.updateTotals.bind(this));

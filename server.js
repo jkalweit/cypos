@@ -236,10 +236,10 @@ io.on('connection', function (socket) {
         console.log('rec closed');
     }.bind());
 
-    socket.on('print', function (id, text, requestId) {
+    socket.on('print', function (id, job, requestId) {
 
-        printer.printDirect({data: text, printer: "TSP700", type: "RAW", success: function () {
-            console.log('printed.');
+        printer.printDirect({data: job.data, printer: job.printer, type: "RAW", success: function () {
+            console.log('printed to printer: ', job.printer);
         }, error: function (err) {
             console.log('Error while printing: ', err);
         }

@@ -21,8 +21,8 @@
         </style>
         <template if="{{status.recIsOpen}}">
             <div id="container">
-                <customer-summary-list></customer-summary-list>
-                <customer-edit></customer-edit>
+                <customer-summary-list printer="{{printer}}"></customer-summary-list>
+                <customer-edit printer="{{printer}}"></customer-edit>
                 <sales-by-item></sales-by-item>
                 <menu-category-list></menu-category-list>
             </div>
@@ -34,6 +34,7 @@
     </template>
     <script>
         Polymer('pos-app', {
+            printer: 'TSP700',
             ready: function() {
                 syncDb.getDb(function(db) {
                     this.status = db.status;

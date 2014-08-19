@@ -384,7 +384,7 @@
                 }
                 console.log('closing rec');
                 //var customers = SyncDbList.prototype.enumerateObj(this.db.customers);
-                //syncDb.socket.emit('closereconciliation', syncDb.syncId, syncDb.makeGuid());
+                syncDb.socket.emit('closereconciliation', syncDb.syncId, syncDb.makeGuid());
             },
             calculateTotals: function () {
                 this.rec.drawer.beginning = posGlobals.helpers.round(this.rec.drawer.beginning);
