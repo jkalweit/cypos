@@ -492,7 +492,9 @@
     <script>
         Polymer('customer-edit', {
             observe: {
-                'customer.paid': 'updateClosedDate'
+                'customer.paid': 'updateClosedDate',
+                'customer.togo': 'updateTogo',
+                'customer.servername': 'updateServername'
             },
             customer: null,
             isHidden: true,
@@ -506,7 +508,7 @@
                     this.orderItemsSync = null;
                 }
                 if(newValue){
-                    this.customerSync = new SyncDbPath('customers.' + newValue.id, '');
+                    //this.customerSync = new SyncDbPath('customers.' + newValue.id, '');
                     this.orderItemsSync = new SyncDbList('customers.' + newValue.id + '.orderitems', this, 'orderItems');
                 } else {
                     //this.customer = null;
@@ -532,7 +534,7 @@
 
                 item.total = this.round(Number(item.alcoholtotal) + Number(item.foodtotal) + Number(item.tax), 2);
 
-                this.updateTotals();
+                //this.updateTotals();
             },
             updateTotals: function () {
                 console.log('      updating customer totals');
@@ -554,10 +556,15 @@
                 if(this.round(foodtotal + alcoholtotal + tax, 2) !== this.round(total, 2))
                     console.log('######TOTAL DOES NOT MATCH#######', this.round(foodtotal + alcoholtotal + tax, 2), this.round(total, 2));
 
-                this.customer.alcoholtotal = this.round(alcoholtotal, 2);
-                this.customer.foodtotal = this.round(foodtotal, 2);
-                this.customer.tax = this.round(tax, 2);
-                this.customer.total = this.round(total, 2);
+//                this.customer.alcoholtotal = this.round(alcoholtotal, 2);
+//                this.customer.foodtotal = this.round(foodtotal, 2);
+//                this.customer.tax = this.round(tax, 2);
+//                this.customer.total = this.round(total, 2);
+                syncDb.update('customers.' + this.customer.id + '.alcoholtotal', this.round(alcoholtotal, 2));
+                syncDb.update('customers.' + this.customer.id + '.foodtotal', this.round(foodtotal, 2));
+                syncDb.update('customers.' + this.customer.id + '.tax', this.round(tax, 2));
+                syncDb.update('customers.' + this.customer.id + '.total', this.round(total, 2));
+
             },
             updateClosedDate: function (oldValue, newValue) {
                 if(typeof oldValue !== 'undefined' && this.customer) {
@@ -568,7 +575,16 @@
                         this.customer.closeddate = null;
                         this.customer.visitduration = null;
                     }
+                    syncDb.update('customers.' + this.customer.id + '.paid', this.customer.paid);
+                    syncDb.update('customers.' + this.customer.id + '.closeddate', this.customer.closeddate);
+                    syncDb.update('customers.' + this.customer.id + '.visitduration', this.customer.visitduration);
                 }
+            },
+            updateTogo: function (oldValue, newValue) {
+                syncDb.update('customers.' + this.customer.id + '.togo', this.customer.togo);
+            },
+            updateServername: function (oldValue, newValue) {
+                syncDb.update('customers.' + this.customer.id + '.servername', this.customer.servername);
             },
             toggle: function () {
                 this.isHidden = !this.isHidden;
@@ -594,7 +610,7 @@
 
                 this.updateOrderItemTotals(null, item);
 
-                console.log('adding order item: ' + JSON.stringify(item));
+                //console.log('adding order item: ' + JSON.stringify(item));
 
                 if(this.orderItemsSync)
                     this.orderItemsSync.addItem(item, this.updateTotals.bind(this));
@@ -653,6 +669,9 @@
                 var data = this.TSP700.LeftAlign;
                 data += this.TSP700.HorizontalTabShort;
                 data += this.TSP700.Expansion;
+                if(this.customer.togo) {
+                    data += '\n\n******** TOGO *******\n\n';
+                }
                 data += '\x09' + this.customer.name;
                 //data += this.TSP700.ExpansionCancel;
                 data += '\n\n';

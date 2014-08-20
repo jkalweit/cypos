@@ -98,7 +98,13 @@ SyncDbPath.prototype.dbObserver = function (changes) {
         if(this.dbTargetProperty === '' || change.name === this.dbTargetProperty) { // && typeof change.oldValue !== 'undefined')
             if(change.type === 'add' || change.type === 'update'){
                 console.log('   SyncDbPath: db changed1: ', this.dbPath, this.dbTargetProperty, 'Change: ', change.type, change.name, change.oldValue, change.object[change.name]);
-                syncDb.update(this.dbPath + '.' + change.name, change.object[change.name]);
+
+                //if(change.type === 'update' && syncDb.cancelNextUpdate[this.dbPath + '.' + change.name]) {
+                //    syncDb.cancelNextUpdate[this.dbPath + '.' + change.name] = false;
+                //    console.log('Canceled update: ', this.dbPath + '.' + change.name, change.type, change.name, change.oldValue, change.object[change.name]);
+                //} else {
+                    syncDb.update(this.dbPath + '.' + change.name, change.object[change.name]);
+                //}
             } else
                 console.log('ERROR: SyncDbPath: Unhandled change.type: ', change.type, change.name, change.oldValue, change.object[change.name], this.dbTargetProperty);
         }
@@ -203,6 +209,7 @@ function SyncDb() {
     this.socket = io();
     this.callbacks = {};
     this.getDbCallbacks = [];
+    this.cancelNextUpdate = {};
 
     this.socket.on('init', function (id, db) {
         //console.log('   init rcvd: ' + JSON.stringify(db));
@@ -216,6 +223,8 @@ function SyncDb() {
 
     this.socket.on('update', function (id, path, value, requestId) {
         console.log('   update rcvd: ', path, value);
+        // TODO: This hack is probably bad
+        //this.cancelNextUpdate[path] = true;
         PathHelper.prototype.setValue(this.db, path, value);
         this.doCallback(requestId, value);
     }.bind(this));
