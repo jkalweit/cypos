@@ -111,8 +111,9 @@
         <template if="{{hasOpenOrderItems}}">
             <div id="container">
                 <paper-shadow z="1"></paper-shadow>
-                <span style="position: absolute; right: 20px; top: 15px;">{{customer.servername }}</span>
+                <span style="position: absolute; right: 40px; top: 15px;">{{customer.servername }}</span>
                 <h2 style="width: 250px;">
+                    <paper-icon-button icon="thumb-up" style="position: absolute; right: 0px; top: 0px; color: rgba(0,0,0,0.5)" on-click="{{completeAllItems}}"></paper-icon-button>
                     <template if="{{customer.togo}}">
                         <core-icon icon="reply" style="position: relative; top: -5px"></core-icon>
                     </template>
@@ -154,6 +155,19 @@
                     }
                 }
                 this.hasOpenOrderItems = false;
+            },
+            completeAllItems: function () {
+                this.orderItems.forEach(function (item) {
+                    if(!item.acknowledgeddate)
+                        item.acknowledgeddate = new Date();
+                    if(!item.completeddate)
+                        item.completeddate = new Date();
+                });
+                this.updateHasOpenOrderItems();
+
+                if(this.type === 'Alcohol'){
+                    alert('Print the items!');
+                }
             },
             currency: posGlobals.formatters.currency,
             formatDate: posGlobals.formatters.formatDate
@@ -209,7 +223,7 @@
             itemChanged: function (oldValue, newValue) {
                 if(newValue) {
                     var path = 'customers.' + this.customerid + '.orderitems.' + newValue.id;
-                    this.itemSync = new SyncDbPath(path, '');
+                    //this.itemSync = new SyncDbPath(path, '');
                 }
             },
             selectOrderItem: function () {

@@ -382,6 +382,11 @@
                     alert('Cannot close rec: drawer is not counted.');
                     return;
                 }
+
+                if(!confirm('Are you sure you want to close this rec? Don\'t forget to print it!')) {
+                    return;
+                }
+
                 console.log('closing rec');
                 //var customers = SyncDbList.prototype.enumerateObj(this.db.customers);
                 syncDb.socket.emit('closereconciliation', syncDb.syncId, syncDb.makeGuid());

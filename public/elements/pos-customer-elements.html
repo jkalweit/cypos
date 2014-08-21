@@ -264,7 +264,7 @@
             <template if="{{!customer.paid}}">
                 <span style="position: absolute; right: 20px; top: 15px;">{{customer.servername }}</span>
                 <span style="position: absolute; right: 20px; top: 37px;">{{customer.openeddate | formatDate }}</span>
-                <template repeat="{{item in orderItems}}">
+                <template if="{{isSelected}}" repeat="{{item in orderItems}}">
                     <orderitem-summary customerId="{{customer.id}}" item="{{item}}"></orderitem-summary>
                 </template>
                 <br/>
@@ -531,10 +531,14 @@
                     item.tax = this.round(Number(item.foodtotal) * 0.09, 2);
                 }
                 item.subtotal = this.round(Number(item.alcoholtotal) + Number(item.foodtotal), 2);
-
                 item.total = this.round(Number(item.alcoholtotal) + Number(item.foodtotal) + Number(item.tax), 2);
 
-                //this.updateTotals();
+                syncDb.update('customers.' + this.customer.id + '.items.' + item.id + '.alcoholtotal', item.alcoholtotal);
+                syncDb.update('customers.' + this.customer.id + '.items.' + item.id + '.foodtotal', item.foodtotal);
+                syncDb.update('customers.' + this.customer.id + '.items.' + item.id + '.tax', item.tax);
+                syncDb.update('customers.' + this.customer.id + '.items.' + item.id + '.subtotal', item.subtotal);
+                syncDb.update('customers.' + this.customer.id + '.items.' + item.id + '.total', item.total);
+                this.updateTotals();
             },
             updateTotals: function () {
                 console.log('      updating customer totals');
@@ -760,10 +764,10 @@
                 <!--<core-input class="center" value="{{item.quantity}}" on-change="{{updateTotals}}" style="position: absolute; top: 28px; left: 5px; height: 20px; width: 30px; margin: 0; padding: 0;"></core-input>-->
                 <!--<paper-icon-button icon="remove-circle-outline" style="margin: 0; padding: 0; position: absolute; top: 43px; left: 0px; width: 30px; height: 30px;" on-click="{{subtractOne}}"></paper-icon-button>-->
             <!--</div>-->
-            <div style="margin-left: 10px; padding: 5px;">
-                <paper-icon-button icon="delete" style="float: right; margin: 0; padding: 0; position: relative; top: -10px;" on-click="{{delete}}"></paper-icon-button>
-                <span style="float: right">{{item.subtotal | currency}}</span>
-                <core-input class="center" value="{{item.price}}" on-change="{{updateTotals}}" style="width: 50px; float: right; margin-right: 5px;"></core-input>
+            <paper-icon-button icon="delete" style="float: left; margin: 0; padding: 0; position: relative; left: -5px; top: 0px;" on-click="{{delete}}"></paper-icon-button>
+            <div style="margin-left: 40px; padding: 0px 10px 2px 0px;">
+                <span style="float: right; margin-top: 5px;">{{item.subtotal | currency}}</span>
+                <core-input class="center" value="{{item.price}}" on-change="{{updateTotals}}" style="width: 50px; float: right; margin-right: 5px; margin-top: 5px;"></core-input>
                 <span style="font-weight: normal; position: relative; top: 7px; left: 0px;">{{item.menuitem.name}}</span>
                 <br/>
                 <paper-input multiline value="{{item.note}}" style="position: relative; left: 0px; top: 0px; width: 12em;"></paper-input>
@@ -777,11 +781,13 @@
             itemChanged: function (oldValue, newValue) {
                 if(this.itemSync)
                     this.itemSync.unobserve();
-                if(newValue)
-                    this.itemSync = new SyncDbPath('customers.' + this.customerId + '.orderitems.' + newValue.id, '');
+//                if(newValue)
+//                    this.itemSync = new SyncDbPath('customers.' + this.customerId + '.orderitems.' + newValue.id, '');
             },
             delete: function() {
-                this.fire('delete', this.item);
+                if(confirm('Delete "' + this.item.menuitem.name + '" ' + this.currency.toDOM(this.item.price) + '?')) {
+                    this.fire('delete', this.item);
+                }
             },
             addOne: function() {
                 this.item.quantity++;
