@@ -111,9 +111,9 @@
         <template if="{{hasOpenOrderItems}}">
             <div id="container">
                 <paper-shadow z="1"></paper-shadow>
+                <paper-icon-button icon="thumb-up" style="position: absolute; right: 0px; top: 0px; color: rgba(0,0,0,0.5)" on-click="{{completeAllItems}}"></paper-icon-button>
                 <span style="position: absolute; right: 40px; top: 15px;">{{customer.servername }}</span>
-                <h2 style="width: 250px;">
-                    <paper-icon-button icon="thumb-up" style="position: absolute; right: 0px; top: 0px; color: rgba(0,0,0,0.5)" on-click="{{completeAllItems}}"></paper-icon-button>
+                <h2 style="width: 200px;">
                     <template if="{{customer.togo}}">
                         <core-icon icon="reply" style="position: relative; top: -5px"></core-icon>
                     </template>
@@ -158,16 +158,25 @@
             },
             completeAllItems: function () {
                 this.orderItems.forEach(function (item) {
-                    if(!item.acknowledgeddate)
+                    if(!item.acknowledgeddate){
                         item.acknowledgeddate = new Date();
-                    if(!item.completeddate)
+                        if(item.menuitem.type === 'Alcohol') {
+                            item.completeddate = new Date();
+                        }
+                    }
+                    else if(!item.completeddate)
                         item.completeddate = new Date();
-                });
+
+                    syncDb.update('customers.' + this.customer.id + '.orderitems.' + item.id + '.acknowledgeddate', item.acknowledgeddate);
+                    syncDb.update('customers.' + this.customer.id + '.orderitems.' + item.id + '.completeddate', item.completeddate);
+                }.bind(this));
+
+
                 this.updateHasOpenOrderItems();
 
-                if(this.type === 'Alcohol'){
-                    alert('Print the items!');
-                }
+//                if(this.type === 'Alcohol'){
+//                    alert('Print the items!');
+//                }
             },
             currency: posGlobals.formatters.currency,
             formatDate: posGlobals.formatters.formatDate
