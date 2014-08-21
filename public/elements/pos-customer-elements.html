@@ -518,6 +518,8 @@
                 return Number(Number(value).toFixed(digits));
             },
             updateOrderItemTotals: function (e, item) {
+                if(!item.id)
+                    return;
                 console.log('    updating orderitem totals');
 //                item.quantity = Number(item.quantity);
 //                item.price = Number(item.price);
@@ -533,11 +535,11 @@
                 item.subtotal = this.round(Number(item.alcoholtotal) + Number(item.foodtotal), 2);
                 item.total = this.round(Number(item.alcoholtotal) + Number(item.foodtotal) + Number(item.tax), 2);
 
-                syncDb.update('customers.' + this.customer.id + '.items.' + item.id + '.alcoholtotal', item.alcoholtotal);
-                syncDb.update('customers.' + this.customer.id + '.items.' + item.id + '.foodtotal', item.foodtotal);
-                syncDb.update('customers.' + this.customer.id + '.items.' + item.id + '.tax', item.tax);
-                syncDb.update('customers.' + this.customer.id + '.items.' + item.id + '.subtotal', item.subtotal);
-                syncDb.update('customers.' + this.customer.id + '.items.' + item.id + '.total', item.total);
+                syncDb.update('customers.' + this.customer.id + '.orderitems.' + item.id + '.alcoholtotal', item.alcoholtotal);
+                syncDb.update('customers.' + this.customer.id + '.orderitems.' + item.id + '.foodtotal', item.foodtotal);
+                syncDb.update('customers.' + this.customer.id + '.orderitems.' + item.id + '.tax', item.tax);
+                syncDb.update('customers.' + this.customer.id + '.orderitems.' + item.id + '.subtotal', item.subtotal);
+                syncDb.update('customers.' + this.customer.id + '.orderitems.' + item.id + '.total', item.total);
                 this.updateTotals();
             },
             updateTotals: function () {
@@ -612,12 +614,15 @@
                     completedate: null
                 };
 
-                this.updateOrderItemTotals(null, item);
 
                 //console.log('adding order item: ' + JSON.stringify(item));
 
-                if(this.orderItemsSync)
-                    this.orderItemsSync.addItem(item, this.updateTotals.bind(this));
+                if(this.orderItemsSync) {
+                    this.orderItemsSync.addItem(item, function(item2)  {
+                        this.updateOrderItemTotals(null, item2);
+                        //this.updateTotals();
+                    }.bind(this));
+                }
             },
             TSP700: {
                 FullCut: '\x1b\x64\x02',
@@ -770,7 +775,7 @@
                 <core-input class="center" value="{{item.price}}" on-change="{{updateTotals}}" style="width: 50px; float: right; margin-right: 5px; margin-top: 5px;"></core-input>
                 <span style="font-weight: normal; position: relative; top: 7px; left: 0px;">{{item.menuitem.name}}</span>
                 <br/>
-                <paper-input multiline value="{{item.note}}" style="position: relative; left: 0px; top: 0px; width: 12em;"></paper-input>
+                <paper-input multiline value="{{item.note}}" on-change="{{updateNote}}" style="position: relative; left: 0px; top: 0px; width: 12em;"></paper-input>
             </div>
             <br style="clear: both" />
         </div>
@@ -783,6 +788,9 @@
                     this.itemSync.unobserve();
 //                if(newValue)
 //                    this.itemSync = new SyncDbPath('customers.' + this.customerId + '.orderitems.' + newValue.id, '');
+            },
+            updateNote: function () {
+                syncDb.update('customers.' + this.customerId + '.orderitems.' + this.item.id + '.note', this.item.note);
             },
             delete: function() {
                 if(confirm('Delete "' + this.item.menuitem.name + '" ' + this.currency.toDOM(this.item.price) + '?')) {
