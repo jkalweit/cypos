@@ -135,6 +135,17 @@ function deleteValue(path) {
     }
 }
 
+function enumerateObj(obj) {
+    var result = [];
+    if(obj) {
+        Object.keys(obj).forEach(function (key) {
+            if(key !== 'currId')
+                result.push(obj[key]);
+        });
+    }
+    //console.log('enumerated: ', JSON.stringify(result));
+    return result;
+};
 
 
 
@@ -235,6 +246,25 @@ io.on('connection', function (socket) {
         //socket.emit('update', id, 'reconciliations.current.closeddate', current.closeddate, requestId);
         console.log('rec closed');
     }.bind());
+
+    socket.on('echo', function (value) {
+        console.log('echoing: ', value);
+        socket.emit('echo', value);
+    });
+
+    socket.on('getopenorders', function(type) {
+        var customers = enumerateObj(getValue('customers'));
+        var orders = [];
+        customers.forEach(function (customer){
+            enumerateObj(customer.orderitems).forEach(function(item) {
+                if(!item.completeddate && item.menuitem.type === type) {
+                    orders.push(item);
+                }
+            });
+        });
+        socket.emit('openorders', type, orders);
+        console.log('openorders: ', type, orders);
+    });
 
     socket.on('print', function (id, job, requestId) {
 

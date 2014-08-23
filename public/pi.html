@@ -5,21 +5,14 @@
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="icon" sizes="196x196" href="icon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-    <title>Kitchen - CYPOS</title>
+    <title>RaspPi - CYPOS</title>
 
-    <script src="bower_components/platform/platform.js"></script>
-
-     <!--First reference globals.js-->
-    <script src="/globals.js"></script>
     <script src="bower_components/socket.io-client/socket.io.js"></script> <!--<script src="/socket.io/socket.io.js"></script>-->
-    <script src="/syncdb.js"></script>
 
     <script src="bower_components/moment/moment.js"></script>
     <script src="bower_components/fastclick/lib/fastclick.js"></script>
     <!--<script src="bower_components/hammerjs/hammer.min.js"></script>-->
     <link href="bower_components/font-roboto/roboto.html" rel="import">
-
-    <link href="elements/pos-order-elements.html" rel="import">
 
     <style>
 
@@ -47,16 +40,30 @@
     </style>
 
 </head>
-<body unresolved touch-action="auto">
+<body touch-action="auto">
 
-<orders-by-customer-list type="Food"></orders-by-customer-list>
+<h1>Test!</h1>
 
+<span id="message">No Message</span>
+
+<button onclick="doTest()">Do Test</button>
 
 <script type="text/javascript">
     window.addEventListener('load', function () {
         FastClick.attach(document.body);
         console.log('FastClick attached.');
     }, false);
+
+    var socket = io();
+
+    socket.on('openorders', function(orders) {
+        console.log('orders: ', orders)
+    });
+
+    function doTest() {
+        socket.emit('getopenorders', 'Food');
+    }
+
 </script>
 </body>
 </html>

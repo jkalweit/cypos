@@ -614,6 +614,11 @@
                     completedate: null
                 };
 
+                // Prevent Aerin's bar orders from showing up on her screen.
+                if(item.menuitem.type === 'Alcohol' && this.customer.servername === 'Aerin') {
+                    item.acknowledgeddate = item.addeddate;
+                    item.completeddate = item.addeddate;
+                }
 
                 //console.log('adding order item: ' + JSON.stringify(item));
 
@@ -663,9 +668,11 @@
                 }.bind(this));
                 data += this.TSP700.HorizontalLine + '\n';
                 data += this.TSP700.Emphasize;
-                data += '\x09Food:\x09' + this.currency.toDOM(this.customer.foodtotal) + '\n';
+                // SUMMERFEST EDIT
+                //data += '\x09Food:\x09' + this.currency.toDOM(this.customer.foodtotal) + '\n';
+                data += '\x09Summerfest:\x09' + this.currency.toDOM(this.customer.alcoholtotal) + '\n';
                 data += '\x09Tax:\x09' + this.currency.toDOM(this.customer.tax) + '\n';
-                data += '\x09Bar:\x09' + this.currency.toDOM(this.customer.alcoholtotal) + '\n';
+                //data += '\x09Bar:\x09' + this.currency.toDOM(this.customer.alcoholtotal) + '\n';
                 data += this.TSP700.Expansion;
                 data += '\x09Total:\x09' + this.currency.toDOM(this.customer.total) + '\n';
                 data += this.TSP700.ExpansionCancel;
